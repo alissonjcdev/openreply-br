@@ -491,12 +491,28 @@ export interface InstagramParticipant {
   username?: string;
 }
 
+export interface InstagramMessageAttachment {
+  image_data?: { url?: string; preview_url?: string; animated_gif_url?: string };
+  video_data?: { url?: string; preview_url?: string };
+  audio_data?: { url?: string };
+  file_url?: string;
+  mime_type?: string;
+  name?: string;
+}
+
 export interface InstagramMessage {
   id: string;
   created_time?: string;
   message?: string;
   from?: InstagramParticipant;
   to?: { data: InstagramParticipant[] };
+  attachments?: { data: InstagramMessageAttachment[] };
+  shares?: { data: { link?: string; name?: string }[] };
+  story?: {
+    reply_to?: { link?: string; id?: string };
+    mention?: { link?: string; id?: string };
+  };
+  is_unsupported?: boolean;
 }
 
 export interface InstagramConversation {
@@ -605,15 +621,34 @@ export async function getConversationMessages(
   accessToken: string,
   conversationId: string
 ): Promise<InstagramMessage[]> {
-  const url = new URL(`${instagramGraphBase()}/${conversationId}`);
-  url.searchParams.set("fields", "messages{id,created_time,from,to,message}");
-  url.searchParams.set("access_token", accessToken);
+  const load = async (fields: string) => {
+    const url = new URL(`${instagramGraphBase()}/${conversationId}`);
+    url.searchParams.set("fields", `messages{${fields}}`);
+    url.searchParams.set("access_token", accessToken);
+    const response = await fetch(url.toString());
+    const data = await handleResponse<{ messages?: { data: InstagramMessage[] } }>(
+      response
+    );
+    return data.messages?.data ?? [];
+  };
 
-  const response = await fetch(url.toString());
-  const data = await handleResponse<{ messages?: { data: InstagramMessage[] } }>(
-    response
-  );
-  return data.messages?.data ?? [];
+  const base = "id,created_time,from,to,message";
+  try {
+    // Media, shared posts and story replies, so the inbox can preview them.
+    return await load(`${base},attachments,shares,story,is_unsupported`);
+  } catch (error) {
+    // A single field Meta refuses for this thread rejects the whole request;
+    // auth and rate-limit failures must stay visible, anything else falls back
+    // to text only rather than an empty inbox.
+    if (
+      error instanceof TokenExpiredError ||
+      error instanceof RateLimitError ||
+      error instanceof PermissionError
+    ) {
+      throw error;
+    }
+    return load(base);
+  }
 }
 
 export async function getUserInfo(accessToken: string): Promise<InstagramUser> {

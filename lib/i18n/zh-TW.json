@@ -476,5 +476,11 @@
   "Trigger": "觸發條件",
   "Links": "連結",
   "Search": "搜尋",
-  "No password needed. We email you a link to sign in.": "不需要密碼，我們會將登入連結寄到你的電子郵件。"
+  "No password needed. We email you a link to sign in.": "不需要密碼，我們會將登入連結寄到你的電子郵件。",
+  "Media unavailable": "無法顯示媒體",
+  "Replied to your story": "回覆了你的限時動態",
+  "Mentioned you in their story": "在限時動態中提及你",
+  "Shared post": "分享的貼文",
+  "Attachment": "附件",
+  "This message type can't be shown here. Open it in Instagram.": "這類訊息無法在此顯示，請在 Instagram 中開啟。"
 }

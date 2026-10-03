@@ -18,6 +18,7 @@ import AccountSelect, { type AccountOption } from "@/components/account-select";
 import { readCache, writeCache } from "@/lib/client-cache";
 import type { ConversationListItem } from "@/app/api/instagram/conversations/route";
 import type { ThreadMessage } from "@/app/api/instagram/conversations/[id]/route";
+import MessageMedia from "@/components/message-media";
 
 const POLL_MS = 12_000;
 // Cached list/threads are shown instantly on revisit, then revalidated in the
@@ -431,15 +432,26 @@ export default function InboxPage() {
                             firstOfRun && i > 0 ? "mt-3" : i > 0 ? "mt-0.5" : ""
                           }`}
                         >
-                          <div
-                            className={`max-w-[78%] rounded-[18px] px-3.5 py-2 text-[15px] leading-[20px] sm:max-w-[65%] ${
-                              m.fromMe
-                                ? `bg-accent text-on-accent ${lastOfRun ? "rounded-br-[6px]" : ""}`
-                                : `bg-surface-2 text-foreground ${lastOfRun ? "rounded-bl-[6px]" : ""}`
-                            }`}
-                          >
-                            <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                          </div>
+                          {m.media?.map((media, mi) => (
+                            <div key={`${m.id}-m${mi}`} className={`max-w-[78%] sm:max-w-[65%] ${mi > 0 || m.text ? "mb-0.5" : ""}`}>
+                              <MessageMedia media={media} fromMe={m.fromMe} />
+                            </div>
+                          ))}
+                          {(m.text || (!m.media?.length && m.unsupported)) && (
+                            <div
+                              className={`max-w-[78%] rounded-[18px] px-3.5 py-2 text-[15px] leading-[20px] sm:max-w-[65%] ${
+                                m.fromMe
+                                  ? `bg-accent text-on-accent ${lastOfRun ? "rounded-br-[6px]" : ""}`
+                                  : `bg-surface-2 text-foreground ${lastOfRun ? "rounded-bl-[6px]" : ""}`
+                              }`}
+                            >
+                              {m.text ? (
+                                <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                              ) : (
+                                <p className="italic opacity-75">{t("This message type can't be shown here. Open it in Instagram.")}</p>
+                              )}
+                            </div>
+                          )}
                           {lastOfRun && (
                             <time
                               dateTime={m.createdTime ?? undefined}
