@@ -344,7 +344,7 @@ export default function InboxPage() {
                           isActive ? "bg-foreground/[0.07]" : "hover:bg-foreground/[0.04]"
                         }`}
                       >
-                        <Avatar name={c.detailsUnavailable ? "" : c.contact.username ?? ""} />
+                        <Avatar name={c.detailsUnavailable ? "" : c.contact.username ?? ""} src={c.detailsUnavailable ? null : c.contact.profilePic} />
                         <span
                           className={`relative min-w-0 flex-1 ${
                             // Hairline under each row, inset to the text like Messages,
@@ -402,7 +402,7 @@ export default function InboxPage() {
                   <span className="max-[359px]:sr-only">{t("Back")}</span>
                 </button>
                 <span className="absolute inset-x-24 flex items-center justify-center gap-2 md:static md:inset-auto md:justify-start">
-                  <Avatar name={active.detailsUnavailable ? "" : active.contact.username ?? ""} size="sm" />
+                  <Avatar name={active.detailsUnavailable ? "" : active.contact.username ?? ""} src={active.detailsUnavailable ? null : active.contact.profilePic} size="sm" />
                   <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">
                     {contactName(active)}
                   </span>
@@ -503,14 +503,37 @@ export default function InboxPage() {
 }
 
 /** Contact placeholder: initial in a neutral gray circle, like Messages. */
-function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
+function Avatar({
+  name,
+  src,
+  size = "md",
+}: {
+  name: string;
+  src?: string | null;
+  size?: "sm" | "md";
+}) {
+  // Profile photos are signed CDN links that expire; fall back to the initial.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const initial = name.replace(/^@/, "").charAt(0).toUpperCase();
+  const box = size === "sm" ? "size-7 text-[12px]" : "size-10 text-[15px]";
+  if (src && failedSrc !== src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- remote, short-lived CDN URL
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setFailedSrc(src)}
+        className={`shrink-0 rounded-full bg-surface-2 object-cover ${box}`}
+      />
+    );
+  }
   return (
     <span
       aria-hidden
-      className={`grid shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-muted ${
-        size === "sm" ? "size-7 text-[12px]" : "size-10 text-[15px]"
-      }`}
+      className={`grid shrink-0 place-items-center rounded-full bg-surface-2 font-semibold text-muted ${box}`}
     >
       {initial || "?"}
     </span>

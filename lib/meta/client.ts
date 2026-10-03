@@ -283,6 +283,34 @@ export async function getUserFollowStatus(
   }
 }
 
+export interface InstagramUserProfile {
+  name?: string;
+  username?: string;
+  profile_pic?: string;
+}
+
+/**
+ * Public profile of someone in a conversation (Instagram User Profile API,
+ * by IGSID). Only works for users who messaged the account; returns null on
+ * any failure so the inbox falls back to initials.
+ */
+export async function getUserProfile(
+  accessToken: string,
+  igsid: string
+): Promise<InstagramUserProfile | null> {
+  const url = new URL(`${instagramGraphBase()}/${igsid}`);
+  url.searchParams.set("fields", "name,username,profile_pic");
+  try {
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as InstagramUserProfile;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * A tappable web_url button in a DM button template. Instagram's button
  * template supports up to 3 buttons; titles are capped at 20 chars by Meta.

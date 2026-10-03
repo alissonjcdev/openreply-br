@@ -7,6 +7,7 @@ import {
 } from "@/lib/instagram/provider";
 import { createInstagramContext } from "@/lib/instagram/provider";
 import type { InstagramMessage } from "@/lib/meta/client";
+import { getLinkPreviews } from "@/lib/instagram/link-preview";
 
 export type ThreadMediaKind =
   | "image"
@@ -119,6 +120,22 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
         unsupported: m.is_unsupported || undefined,
       }))
       .reverse();
+
+    // Shared posts/reels arrive as instagram.com permalinks: attach the cover
+    // image and author so the inbox can show a link preview.
+    const shareUrls = messages.flatMap((m) =>
+      (m.media ?? []).filter((x) => x.kind === "share").map((x) => x.url)
+    );
+    if (shareUrls.length) {
+      const previews = await getLinkPreviews(shareUrls);
+      for (const m of messages) {
+        for (const media of m.media ?? []) {
+          const preview = media.kind === "share" ? previews.get(media.url) : undefined;
+          if (preview?.image) media.previewUrl = preview.image;
+          if (preview?.author) media.name = preview.author;
+        }
+      }
+    }
 
     const data: ThreadResponse = { messages };
     return NextResponse.json({ success: true, data });

@@ -1,3 +1,4 @@
+import { getUserProfiles } from "@/lib/instagram/user-profiles";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentWorkspaceId } from "@/lib/auth";
 import { getWorkspaceInstagramAccount } from "@/lib/instagram-accounts";
@@ -11,7 +12,12 @@ import { createInstagramContext } from "@/lib/instagram/provider";
 export interface ConversationListItem {
   id: string;
   detailsUnavailable?: boolean;
-  contact: { id: string; username: string | null };
+  contact: {
+    id: string;
+    username: string | null;
+    name?: string | null;
+    profilePic?: string | null;
+  };
   updatedTime: string | null;
   lastMessage: {
     text: string;
@@ -53,6 +59,13 @@ export async function GET(request: NextRequest) {
       igUserId: account.instagramId,
     });
 
+    const contactIds = raw.flatMap((c) =>
+      (c.participants?.data ?? [])
+        .filter((p) => p.id !== account.instagramId)
+        .map((p) => p.id)
+    );
+    const profiles = await getUserProfiles(accessToken, account.id, contactIds);
+
     const conversations: ConversationListItem[] = raw.map((c) => {
       const participants = c.participants?.data ?? [];
       const contact =
@@ -65,6 +78,8 @@ export async function GET(request: NextRequest) {
         contact: {
           id: contact?.id ?? "",
           username: contact?.username ?? null,
+          name: contact?.id ? profiles.get(contact.id)?.name ?? null : null,
+          profilePic: contact?.id ? profiles.get(contact.id)?.profile_pic ?? null : null,
         },
         updatedTime: c.updated_time ?? null,
         lastMessage: last

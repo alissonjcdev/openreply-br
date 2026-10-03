@@ -91,7 +91,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #000000;
+    --background: #131315;
     --foreground: #f5f5f7;
     --surface: #1c1c1e;
     --surface-hover: #242426;
@@ -110,14 +110,14 @@
     --warning: #ff9f0a;
     --switch-on: #30d158;
     --overlay: rgb(0 0 0 / 0.5);
-    --material: rgb(22 22 24 / 0.78);
+    --material: rgb(19 19 21 / 0.82);
   }
 }
 
 /* Dark, picked explicitly (or pinned on a subtree). Same values as above. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #000000;
+  --background: #131315;
   --foreground: #f5f5f7;
   --surface: #1c1c1e;
   --surface-hover: #242426;
@@ -136,7 +136,7 @@
   --warning: #ff9f0a;
   --switch-on: #30d158;
   --overlay: rgb(0 0 0 / 0.5);
-  --material: rgb(22 22 24 / 0.78);
+  --material: rgb(19 19 21 / 0.82);
 }
 
 body {

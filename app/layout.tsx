@@ -32,7 +32,7 @@ export const viewport: Viewport = {
   // Matches --background per scheme so the browser chrome blends in.
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#141416" },
+    { media: "(prefers-color-scheme: dark)", color: "#131315" },
   ],
   width: "device-width",
   initialScale: 1,

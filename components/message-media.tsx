@@ -11,7 +11,7 @@
  */
 
 import { useState } from "react";
-import { FileText, ImageOff } from "lucide-react";
+import { Clapperboard, FileText, ImageOff } from "lucide-react";
 import { useI18n } from "@/lib/i18n/provider";
 import type { ThreadMedia } from "@/app/api/instagram/conversations/[id]/route";
 
@@ -52,6 +52,23 @@ function VisualMedia({ url, poster }: { url: string; poster?: string }) {
       referrerPolicy="no-referrer"
       onError={() => setMode("video")}
       className="max-h-80 w-auto max-w-64 rounded-[18px] bg-surface-2 object-cover"
+    />
+  );
+}
+
+// Cover of a shared post; hidden (not a broken image) once the link expires.
+function SharePreviewImage({ url }: { url: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- remote, signed, short-lived CDN URL
+    <img
+      src={url}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className="aspect-[4/5] w-full object-cover"
     />
   );
 }
@@ -111,13 +128,27 @@ export default function MessageMedia({
         </div>
       );
     case "share":
+      // Link preview like Messages: cover on top, author and domain below.
       return (
-        <div className={`flex flex-col gap-1 ${fromMe ? "items-end" : "items-start"}`}>
-          <span className="px-1 text-[12px] text-muted">{t("Shared post")}</span>
-          <a href={media.url} target="_blank" rel="noopener noreferrer" className="block">
-            <VisualMedia url={media.url} />
-          </a>
-        </div>
+        <a
+          href={media.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-60 max-w-full overflow-hidden rounded-[18px] bg-surface-2 hover:opacity-90"
+        >
+          {media.previewUrl && <SharePreviewImage url={media.previewUrl} />}
+          <span className="flex items-center gap-2.5 px-3.5 py-2.5">
+            {!media.previewUrl && (
+              <Clapperboard aria-hidden strokeWidth={1.8} className="size-5 shrink-0 text-accent" />
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-semibold leading-[18px]">
+                {media.name || t("Shared post")}
+              </span>
+              <span className="block text-[12px] leading-[16px] text-muted">instagram.com</span>
+            </span>
+          </span>
+        </a>
       );
     case "file":
     default:
