@@ -12,26 +12,17 @@ export async function generateMetadata() {
 export default async function VerifyRequestPage() {
   const { t } = await getI18n();
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-foreground">
-            OpenReply
-          </h1>
-        </div>
-
-        <div className="panel rounded p-8 text-center">
-          <h2 className="text-lg font-semibold mb-2">{t("Check your email")}</h2>
-          <p className="text-sm text-muted">
-            {t("We sent you a secure sign-in link. Open it on this device to continue.")}
-          </p>
-          <p className="mt-6 text-sm">
-            <Link href="/login" className="text-accent hover:underline">
-              {t("Back to sign in")}
-            </Link>
-          </p>
-        </div>
+    <main className="flex min-h-[calc(100dvh-3rem)] items-center justify-center px-6 pb-16">
+      <div className="w-full max-w-[360px] text-center">
+        <p className="text-[15px] font-semibold tracking-[-0.02em] text-muted">OpenReply</p>
+        <h1 className="large-title mt-2">{t("Check your email")}</h1>
+        <p className="mt-2 text-balance text-[15px] leading-[22px] text-muted">
+          {t("We sent you a secure sign-in link. Open it on this device to continue.")}
+        </p>
+        <Link href="/login" className="btn btn-secondary btn-lg mt-8 w-full">
+          {t("Back to sign in")}
+        </Link>
       </div>
-    </div>
+    </main>
   );
 }

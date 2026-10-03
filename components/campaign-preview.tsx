@@ -166,7 +166,7 @@ function Phone({ children }: { children: React.ReactNode }) {
       <span className={`${btn} -right-[2px] left-auto top-[250px] h-9 bg-gradient-to-l`} />
 
       {/* Titanium frame → black bezel → screen */}
-      <div className="relative rounded-[3rem] bg-gradient-to-br from-zinc-500 via-zinc-700 to-zinc-600 p-[3px] shadow-2xl">
+      <div className="relative rounded-[3rem] bg-gradient-to-br from-zinc-500 via-zinc-700 to-zinc-600 p-[3px]">
         <div className="rounded-[2.85rem] bg-black p-[9px]">
           <div className="relative h-[640px] overflow-hidden rounded-[2.3rem] bg-black">
             {/* Dynamic Island */}
@@ -497,7 +497,21 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
     tab === "dmTrigger" && !props.dmTriggerEnabled ? "dm" : tab;
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex flex-col items-center gap-4">
+      <div role="tablist" aria-label={t("Preview")} className="segmented w-full max-w-[300px]">
+        {tabs.map((tb) => (
+          <button
+            key={tb.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tb.key}
+            onClick={() => onTabChange(tb.key)}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
       <Phone>
         {activeTab === "post" && (
           <PostScreen
@@ -562,22 +576,6 @@ export default function CampaignPreview(props: CampaignPreviewProps) {
         )}
       </Phone>
 
-      <div className="inline-flex rounded-full bg-surface p-1">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => onTabChange(t.key)}
-            className={`rounded-full px-4 py-1.5 text-sm transition-colors ${
-              activeTab === t.key
-                ? "bg-background font-medium text-foreground ring-1 ring-accent/40"
-                : "text-muted hover:text-foreground"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

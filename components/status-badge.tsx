@@ -2,8 +2,10 @@
 
 import type { StaticMessageKey } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/provider";
+
 /**
- * Status label for DM status. Plain text; color carries the state.
+ * Status label for DM status. Plain colored text, the way Mail and Activity
+ * Monitor show state: no badge, no dot, no capsule.
  */
 
 const statusConfig: Record<string, { text: string; label: StaticMessageKey }> = {
@@ -18,14 +20,17 @@ const statusConfig: Record<string, { text: string; label: StaticMessageKey }> = 
 
 interface StatusBadgeProps {
   status: string;
+  className?: string;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+export default function StatusBadge({ status, className = "" }: StatusBadgeProps) {
   const { t } = useI18n();
   const config = statusConfig[status] ?? statusConfig.PENDING;
 
   return (
-    <span className={`shrink-0 whitespace-nowrap text-sm ${config.text}`}>
+    <span
+      className={`shrink-0 whitespace-nowrap text-[13px] font-medium tracking-[-0.005em] ${config.text} ${className}`}
+    >
       {t(config.label)}
     </span>
   );

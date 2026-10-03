@@ -16,9 +16,9 @@ import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/provider";
 import { useState } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -36,8 +36,11 @@ export interface FollowerChartPoint {
 // The accent line clears 3:1 on both chart surfaces; grid/axis text match the
 // border/muted tokens.
 const SERIES_COLOR = "var(--accent)";
+// Flat tint under the line (no gradient), mixed from the accent token so it
+// follows the theme.
+const AREA_FILL = "color-mix(in srgb, var(--accent) 12%, transparent)";
 const GRID_COLOR = "var(--border)";
-const AXIS_TEXT = "var(--muted)";
+const AXIS_TEXT = "var(--tertiary)";
 const SURFACE_COLOR = "var(--surface)";
 
 function formatCompact(n: number, locale: Locale): string {
@@ -70,9 +73,9 @@ function ChartTooltip({
   const point = payload[0].payload;
 
   return (
-    <div className="rounded border border-border bg-background px-3 py-2 text-xs">
+    <div className="popover px-3 py-2 text-[12px] leading-4">
       <p className="text-muted">{formatDay(point.date, locale)}</p>
-      <p className="mt-1 font-semibold text-foreground">
+      <p className="numeral mt-1 text-[13px] font-semibold text-foreground">
         {point.followers.toLocaleString(locale)} {t("followers")}
       </p>
       {point.delta !== null && point.delta !== 0 && (
@@ -102,122 +105,134 @@ export default function FollowerChart({
     data.length > 1 ? data[data.length - 1].followers - data[0].followers : null;
 
   return (
-    <div className="panel rounded p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-foreground">
-            {t("Followers over time")}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            {current === null
-              ? t("Follower count unavailable")
-              : t("{count} now", { count: current.toLocaleString(locale) })}
-            {net !== null && (
-              <>
-                {" · "}
-                <span className={net >= 0 ? "text-success" : "text-error"}>
-                  {formatSigned(net, locale)}
-                </span>{" "}
-                {t("over {count} days", { count: data.length })}
-              </>
-            )}
-          </p>
-        </div>
+    <section>
+      <div className="flex items-end justify-between gap-3 pr-4">
+        <h2 className="group-header">{t("Followers over time")}</h2>
         {data.length > 1 && (
           <button
             type="button"
             onClick={() => setShowTable((v) => !v)}
-            className="rounded border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
+            className="btn-plain mb-1.5 text-[13px]"
           >
             {showTable ? t("Show chart") : t("Show table")}
           </button>
         )}
       </div>
 
-      {data.length < 2 ? (
-        <div className="mt-6 rounded border border-border bg-surface/60 p-6 text-center">
-          <p className="text-sm text-foreground">{t("Collecting follower history")}</p>
-          <p className="mt-1 text-sm text-muted">
-            {data.length === 0
-              ? t("No snapshots recorded yet.")
-              : t("One day recorded so far.")}{" "}
-            {t("A point is added daily — the chart appears once there are at least two.")}
-          </p>
+      <div className="group">
+        <div className="px-4 pt-4 sm:px-5">
+          {current === null ? (
+            <p className="title-3 text-muted">{t("Follower count unavailable")}</p>
+          ) : (
+            <p className="numeral text-[28px] font-semibold leading-9">
+              {current.toLocaleString(locale)}
+              <span className="ml-1.5 font-sans text-[15px] font-normal tracking-normal text-muted">
+                {t("followers")}
+              </span>
+            </p>
+          )}
+          {net !== null && (
+            <p className="footnote">
+              <span className={`numeral font-medium ${net >= 0 ? "text-success" : "text-error"}`}>
+                {formatSigned(net, locale)}
+              </span>{" "}
+              {t("over {count} days", { count: data.length })}
+            </p>
+          )}
         </div>
-      ) : showTable ? (
-        <div className="mt-4 max-h-72 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                <th className="py-2 pr-4 font-medium">{t("Date")}</th>
-                <th className="py-2 px-3 font-medium text-right">{t("Followers")}</th>
-                <th className="py-2 pl-3 font-medium text-right">{t("Change")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...data].reverse().map((p) => (
-                <tr key={p.date} className="border-b border-border last:border-0">
-                  <td className="py-2 pr-4 text-foreground">
-                    {formatDay(p.date, locale)}
-                  </td>
-                  <td className="py-2 px-3 text-right text-muted">
-                    {p.followers.toLocaleString(locale)}
-                  </td>
-                  <td className="py-2 pl-3 text-right text-muted">
-                    {p.delta === null ? "—" : formatSigned(p.delta, locale)}
-                  </td>
+
+        {data.length < 2 ? (
+          <div className="px-4 pt-8 pb-10 text-center sm:px-5">
+            <p className="text-[15px] font-medium">{t("Collecting follower history")}</p>
+            <p className="footnote mx-auto mt-1 max-w-md">
+              {data.length === 0
+                ? t("No snapshots recorded yet.")
+                : t("One day recorded so far.")}{" "}
+              {t("A point is added daily — the chart appears once there are at least two.")}
+            </p>
+          </div>
+        ) : showTable ? (
+          <div className="mt-3 max-h-80 overflow-y-auto border-t-[0.5px] border-border-hover">
+            <table className="w-full text-[14px]">
+              <thead className="material sticky top-0">
+                <tr className="text-left text-[12px] text-muted">
+                  <th className="py-2 pl-4 pr-3 font-medium sm:pl-5">{t("Date")}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t("Followers")}</th>
+                  <th className="py-2 pl-3 pr-4 text-right font-medium sm:pr-5">{t("Change")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="mt-6 h-56 sm:h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
-            >
-              <CartesianGrid
-                vertical={false}
-                stroke={GRID_COLOR}
-                strokeDasharray="3 3"
-              />
-              <XAxis
-                dataKey="date"
-                tickFormatter={(value) => formatDay(value, locale)}
-                tick={{ fill: AXIS_TEXT, fontSize: 12 }}
-                stroke={GRID_COLOR}
-                tickLine={false}
-                minTickGap={24}
-              />
-              <YAxis
-                tickFormatter={(value) => formatCompact(value, locale)}
-                tick={{ fill: AXIS_TEXT, fontSize: 12 }}
-                stroke={GRID_COLOR}
-                tickLine={false}
-                width={52}
-                // Followers rarely start near zero, so a zero baseline would
-                // flatten the line into a straight edge.
-                domain={["dataMin - 5", "dataMax + 5"]}
-              />
-              <Tooltip
-                content={<ChartTooltip />}
-                cursor={{ stroke: GRID_COLOR, strokeWidth: 1 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="followers"
-                stroke={SERIES_COLOR}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: SERIES_COLOR, stroke: SURFACE_COLOR, strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </div>
+              </thead>
+              <tbody>
+                {[...data].reverse().map((p) => (
+                  <tr key={p.date} className="border-t-[0.5px] border-border-hover">
+                    <td className="py-2.5 pl-4 pr-3 sm:pl-5">{formatDay(p.date, locale)}</td>
+                    <td className="numeral px-3 py-2.5 text-right">
+                      {p.followers.toLocaleString(locale)}
+                    </td>
+                    <td
+                      className={`numeral py-2.5 pl-3 pr-4 text-right sm:pr-5 ${
+                        p.delta === null || p.delta === 0
+                          ? "text-muted"
+                          : p.delta > 0
+                            ? "text-success"
+                            : "text-error"
+                      }`}
+                    >
+                      {p.delta === null ? "—" : formatSigned(p.delta, locale)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-4 h-56 pr-1 pb-3 pl-4 sm:h-64 sm:pl-5">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
+                <CartesianGrid vertical={false} stroke={GRID_COLOR} strokeWidth={0.75} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(value) => formatDay(value, locale)}
+                  tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                />
+                <YAxis
+                  orientation="right"
+                  tickFormatter={(value) => formatCompact(value, locale)}
+                  tick={{ fill: AXIS_TEXT, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={6}
+                  width={48}
+                  tickCount={4}
+                  allowDecimals={false}
+                  // Followers rarely start near zero, so a zero baseline would
+                  // flatten the line into a straight edge. "auto" on both ends
+                  // fits the data and still lands on round tick values.
+                  domain={["auto", "auto"]}
+                />
+                <Tooltip
+                  content={<ChartTooltip />}
+                  cursor={{ stroke: "var(--border-hover)", strokeWidth: 1 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="followers"
+                  stroke={SERIES_COLOR}
+                  strokeWidth={2}
+                  fill={AREA_FILL}
+                  fillOpacity={1}
+                  dot={false}
+                  activeDot={{ r: 4.5, fill: SERIES_COLOR, stroke: SURFACE_COLOR, strokeWidth: 2 }}
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

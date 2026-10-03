@@ -1,28 +1,39 @@
 "use client";
 
 /**
- * Sidebar Navigation
+ * Sidebar — macOS source list.
  *
- * Text-only nav with active state and workspace section.
+ * Tinted line icons, neutral selection (no filled accent pill), material
+ * background. Interface preferences live in Settings, not here.
  */
 
-import LanguageSwitcher from "@/components/language-switcher";
-import ThemeToggle from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/provider";
 import Link from "next/link";
-import Image from "next/image";
 import { zernioLink } from "@/lib/zernio-links";
 import { usePathname } from "next/navigation";
+import {
+  Activity,
+  BarChart3,
+  Inbox,
+  LayoutGrid,
+  Megaphone,
+  ScrollText,
+  Settings,
+  type LucideIcon,
+} from "lucide-react";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Overview", href: "/overview" },
-  { label: "Inbox", href: "/inbox" },
-  { label: "Campaigns", href: "/campaigns" },
-  { label: "DM Logs", href: "/logs" },
-  { label: "Settings", href: "/settings" },
-  { label: "Diagnostics", href: "/diagnostics" },
-] as const;
+const navItems: { label: "Dashboard" | "Overview" | "Inbox" | "Campaigns" | "DM Logs" | "Settings" | "Diagnostics"; href: string; icon: LucideIcon }[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
+  { label: "Overview", href: "/overview", icon: BarChart3 },
+  { label: "Inbox", href: "/inbox", icon: Inbox },
+  { label: "Campaigns", href: "/campaigns", icon: Megaphone },
+  { label: "DM Logs", href: "/logs", icon: ScrollText },
+];
+
+const secondaryItems: typeof navItems = [
+  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Diagnostics", href: "/diagnostics", icon: Activity },
+];
 
 interface SidebarProps {
   isOpen: boolean;
@@ -38,6 +49,32 @@ export default function Sidebar({
   const { t } = useI18n();
   const pathname = usePathname();
 
+  const renderItem = (item: (typeof navItems)[number]) => {
+    const isActive =
+      pathname === item.href || pathname.startsWith(item.href + "/");
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={onClose}
+        aria-current={isActive ? "page" : undefined}
+        className={`flex items-center gap-2.5 rounded-md px-2.5 h-8 text-[14px] transition-colors ${
+          isActive
+            ? "bg-foreground/[0.08] text-foreground font-medium"
+            : "text-foreground/85 hover:bg-foreground/[0.05]"
+        }`}
+      >
+        <Icon
+          aria-hidden
+          strokeWidth={1.9}
+          className={`size-[17px] shrink-0 ${isActive ? "text-accent" : "text-accent/90"}`}
+        />
+        <span className="truncate">{t(item.label)}</span>
+      </Link>
+    );
+  };
+
   return (
     <>
       {/* Mobile overlay */}
@@ -50,67 +87,45 @@ export default function Sidebar({
 
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-dvh w-64 max-w-[85vw] shrink-0 bg-surface border-r border-border flex flex-col
-          transition-transform duration-200 ease-out
+          material fixed top-0 left-0 z-50 h-dvh w-[248px] max-w-[85vw] shrink-0 border-r border-border flex flex-col
+          transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]
           lg:h-full lg:translate-x-0 lg:static lg:z-auto
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Same reason as the top bar: the drawer is full height, so the
-            wordmark would otherwise land under the status bar. */}
+        {/* The drawer is full height, so the wordmark would otherwise land
+            under the status bar when installed to the home screen. */}
         <div
-          className="px-6 py-5 border-b border-border"
-          style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}
+          className="px-5 pb-3"
+          style={{ paddingTop: "calc(1.15rem + env(safe-area-inset-top))" }}
         >
-          <Link href="/dashboard" className="text-base font-semibold">
+          <Link
+            href="/dashboard"
+            onClick={onClose}
+            className="text-[15px] font-semibold tracking-[-0.02em]"
+          >
             OpenReply
           </Link>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onClose}
-                aria-current={isActive ? "page" : undefined}
-                className={`
-                  block px-3 py-2.5 rounded text-sm
-                  ${
-                    isActive
-                      ? "bg-surface-hover text-foreground font-medium"
-                      : "text-muted hover:text-foreground hover:bg-surface-hover"
-                  }
-                `}
-              >
-                {t(item.label)}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-3 pt-1">
+          <div className="space-y-px">{navItems.map(renderItem)}</div>
+          <p className="px-2.5 pt-5 pb-1.5 text-[12px] font-semibold text-muted">
+            {t("Workspace")}
+          </p>
+          <div className="space-y-px">{secondaryItems.map(renderItem)}</div>
         </nav>
 
         <div className="px-5 py-4 border-t border-border">
-          <div className="mb-4"><LanguageSwitcher /></div>
-          <div className="mb-4"><ThemeToggle /></div>
-          <p className="text-sm text-foreground truncate">{workspaceName}</p>
-          <p className="text-xs text-muted">{t("Self-hosted")}</p>
+          <p className="truncate text-[13px] font-medium">{workspaceName}</p>
+          <p className="caption mt-0.5">{t("Self-hosted")}</p>
           <a
             href={zernioLink({ placement: "sidebar" })}
             target="_blank"
             rel="sponsored noopener noreferrer"
-            className="mt-4 flex items-center gap-3 text-xs text-muted hover:text-foreground"
+            className="caption mt-2 inline-block hover:text-foreground"
           >
-            <span>{t("Supported by")}</span>
-            <Image
-              src="/brand/zernio-primary.svg"
-              alt="Zernio"
-              width={64}
-              height={20}
-              className="m-2"
-            />
+            {t("Supported by")} Zernio
           </a>
         </div>
       </aside>

@@ -3,9 +3,12 @@
 /**
  * DM Logs Page
  *
- * Filterable, paginated table of DM logs.
+ * Filterable, paginated list of DM logs, laid out like a Mail message list:
+ * commenter and relative time on the first line, the comment below, then the
+ * campaign / matched keyword, with the status as colored text.
  */
 
+import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState, useCallback } from "react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
@@ -16,6 +19,7 @@ interface DmLog {
   commenterId: string;
   commenterName: string | null;
   commentText: string;
+  matchedKeyword?: string | null;
   status: string;
   errorMessage: string | null;
   createdAt: string;
@@ -39,6 +43,17 @@ const STATUS_FILTERS = [
   "SKIPPED_PLAN_LIMIT",
   "SKIPPED_DEDUP",
 ];
+
+function relativeTime(iso: string, locale: Locale): string {
+  const seconds = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
+  const abs = Math.abs(seconds);
+  if (abs < 60) return rtf.format(seconds, "second");
+  if (abs < 3600) return rtf.format(Math.round(seconds / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(seconds / 3600), "hour");
+  if (abs < 604800) return rtf.format(Math.round(seconds / 86400), "day");
+  return new Date(iso).toLocaleDateString(locale, { month: "short", day: "numeric" });
+}
 
 export default function LogsPage() {
   const { t, label, locale } = useI18n();
@@ -101,25 +116,18 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Filters */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((status) => (
-            <button
-              key={status}
-              onClick={() => handleFilterChange(status)}
-              className={`
-                px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                ${
-                  statusFilter === status
-                    ? "bg-accent/15 text-accent border border-accent/20"
-                    : "bg-surface text-muted border border-border hover:border-border-hover hover:text-foreground"
-                }
-              `}
-            >
-              {label(status)}
-            </button>
-          ))}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="large-title">{t("DM Logs")}</h1>
+          {pagination && pagination.total > 0 && (
+            <p className="footnote mt-1">
+              {t("Showing {start}–{end} of {total}", {
+                start: (pagination.page - 1) * pagination.limit + 1,
+                end: Math.min(pagination.page * pagination.limit, pagination.total),
+                total: pagination.total,
+              })}
+            </p>
+          )}
         </div>
         {accounts.length > 1 && (
           <AccountSelect
@@ -130,110 +138,125 @@ export default function LogsPage() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="panel rounded overflow-hidden">
-        {/* Six columns don't fit a phone; the table keeps its width and scrolls
-            horizontally inside the panel rather than crushing every cell. */}
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Commenter")}</th>
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Comment")}</th>
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Campaign")}</th>
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Account")}</th>
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Status")}</th>
-                <th className="px-4 py-4 text-xs font-semibold text-muted uppercase tracking-wider sm:px-6">{t("Time")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {loading && (
-                <>
-                  {[...Array(5)].map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={6} className="px-4 py-4 sm:px-6">
-                        <div className="h-4 bg-surface-hover rounded" />
-                      </td>
-                    </tr>
-                  ))}
-                </>
-              )}
-              {!loading && logs.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted sm:px-6">
-                    {t("No logs found")}
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-surface-hover/50 transition-colors">
-                    <td className="px-4 py-4 sm:px-6">
-                      <span className="font-medium text-foreground">
-                        @{log.commenterName ?? log.commenterId.slice(0, 8)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 max-w-[200px] sm:px-6">
-                      <span className="text-muted truncate block">{log.commentText}</span>
-                    </td>
-                    <td className="px-4 py-4 sm:px-6">
-                      <span className="text-muted">{log.automation.name}</span>
-                    </td>
-                    <td className="px-4 py-4 sm:px-6">
-                      <span className="text-muted">@{log.instagramAccount.username}</span>
-                    </td>
-                    <td className="px-4 py-4 sm:px-6">
-                      <StatusBadge status={log.status} />
-                    </td>
-                    <td className="px-4 py-4 text-muted whitespace-nowrap sm:px-6">
-                      {new Date(log.createdAt).toLocaleString(locale, {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+      {/* Status filter. Seven segments outgrow a phone, so the control scrolls
+          sideways inside its own strip instead of wrapping. */}
+      <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+        <div role="radiogroup" aria-label={t("Status")} className="segmented min-w-max">
+          {STATUS_FILTERS.map((status) => (
+            <button
+              key={status}
+              type="button"
+              role="radio"
+              aria-checked={statusFilter === status}
+              onClick={() => handleFilterChange(status)}
+            >
+              {label(status)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="group">
+          {loading &&
+            [...Array(6)].map((_, i) => (
+              <div key={i} className="group-row items-start py-3" aria-hidden>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-3.5 w-32 rounded bg-surface-2" />
+                  <div className="h-3 w-3/4 rounded bg-surface-2" />
+                </div>
+                <div className="h-3 w-12 rounded bg-surface-2" />
+              </div>
+            ))}
+
+          {!loading && logs.length === 0 && (
+            <p className="footnote px-4 py-16 text-center">{t("No logs found")}</p>
+          )}
+
+          {!loading &&
+            logs.map((log) => (
+              <div key={log.id} className="group-row items-start gap-4 py-3 sm:pr-5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <p className="min-w-0 truncate text-[15px] font-semibold tracking-[-0.01em]">
+                      @{log.commenterName ?? log.commenterId.slice(0, 8)}
+                    </p>
+                    {accounts.length > 1 && (
+                      <p className="hidden shrink-0 text-[13px] text-tertiary sm:block">
+                        @{log.instagramAccount.username}
+                      </p>
+                    )}
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[15px] leading-5 text-foreground/85">
+                    {log.commentText}
+                  </p>
+                  <p className="caption mt-1 truncate lg:hidden">
+                    {log.automation.name}
+                    {log.matchedKeyword && (
+                      <>
+                        {" · "}
+                        <span className="text-foreground/70">{log.matchedKeyword}</span>
+                      </>
+                    )}
+                  </p>
+                  {log.errorMessage && log.status === "FAILED" && (
+                    <p className="mt-1 text-[12px] leading-4 text-error">{log.errorMessage}</p>
+                  )}
+                </div>
+                {/* Wide screens: campaign and matched keyword get their own column */}
+                <div className="hidden w-60 shrink-0 pt-0.5 lg:block">
+                  <p className="truncate text-[13px] leading-[18px]">{log.automation.name}</p>
+                  {log.matchedKeyword && (
+                    <p className="caption mt-0.5 truncate">{log.matchedKeyword}</p>
+                  )}
+                </div>
+                <div className="flex w-24 shrink-0 flex-col items-end gap-1 pt-0.5">
+                  <time
+                    dateTime={log.createdAt}
+                    title={new Date(log.createdAt).toLocaleString(locale, {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    className="caption whitespace-nowrap"
+                  >
+                    {relativeTime(log.createdAt, locale)}
+                  </time>
+                  <StatusBadge status={log.status} />
+                </div>
+              </div>
+            ))}
         </div>
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 border-t border-border sm:px-6">
-            <p className="text-xs text-muted">
-              {t("Showing {start}–{end} of {total}", {
-                start: (pagination.page - 1) * pagination.limit + 1,
-                end: Math.min(pagination.page * pagination.limit, pagination.total),
-                total: pagination.total,
-              })}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => {
-                  setLoading(true);
-                  setPage(page - 1);
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted border border-border hover:text-foreground hover:border-border-hover transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                {t("Previous")}
-              </button>
-              <span className="text-xs text-muted px-2">
-                {page} / {pagination.totalPages}
-              </span>
-              <button
-                disabled={page >= pagination.totalPages}
-                onClick={() => {
-                  setLoading(true);
-                  setPage(page + 1);
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted border border-border hover:text-foreground hover:border-border-hover transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                {t("Next")}
-              </button>
-            </div>
+          <div className="flex items-center justify-between gap-3 px-4 pt-3">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => {
+                setLoading(true);
+                setPage(page - 1);
+              }}
+              className="btn-plain text-[15px] disabled:pointer-events-none disabled:text-tertiary"
+            >
+              {t("Previous")}
+            </button>
+            <span className="numeral text-[13px] text-muted">
+              {page} / {pagination.totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= pagination.totalPages}
+              onClick={() => {
+                setLoading(true);
+                setPage(page + 1);
+              }}
+              className="btn-plain text-[15px] disabled:pointer-events-none disabled:text-tertiary"
+            >
+              {t("Next")}
+            </button>
           </div>
         )}
       </div>

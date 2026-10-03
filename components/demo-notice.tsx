@@ -65,14 +65,14 @@ export function DemoNotice({ variant }: { variant: "banner" | "panel" }) {
 
   if (variant === "banner") {
     return (
-      <div className="relative border-b border-accent/30 bg-accent-soft">
-        <p className="mx-auto w-full max-w-6xl px-10 py-2 text-center text-xs leading-5 text-foreground sm:px-14 sm:text-sm">
-          <span className="font-bold text-foreground">{DEMO_HOST}</span> {t("is a demo. OpenReply is self-hosted — signing in here will not send DMs for your account.")}{" "}
+      <div className="material relative border-b border-border">
+        <p className="mx-auto w-full max-w-6xl px-10 py-2 text-center text-[12px] leading-[18px] text-muted sm:px-14 sm:text-[13px]">
+          <span className="font-semibold text-foreground">{DEMO_HOST}</span> {t("is a demo. OpenReply is self-hosted — signing in here will not send DMs for your account.")}{" "}
           <a
             href={SETUP_DOCS_URL}
             target="_blank"
             rel="noreferrer"
-            className="font-bold text-accent-text underline underline-offset-2 transition hover:text-foreground"
+            className="font-medium text-accent-text hover:underline"
           >
             {t("Deploy your own copy")}
           </a>
@@ -91,15 +91,15 @@ export function DemoNotice({ variant }: { variant: "banner" | "panel" }) {
   }
 
   return (
-    <div className="relative mb-5 rounded border border-warning/30 bg-warning/10 px-4 py-3 pr-10">
-      <p className="text-sm leading-6 text-foreground">
-        <span className="font-semibold">{DEMO_HOST} {t("is a demo instance.")}</span>{" "}
+    <div className="relative mb-8 rounded-xl bg-surface px-4 py-3.5 pr-10 text-left">
+      <p className="text-[15px] font-semibold text-warning">{DEMO_HOST} {t("is a demo instance.")}</p>
+      <p className="mt-1 text-[14px] leading-[20px] text-muted">
         {t("Signing in here will not send DMs for your Instagram account. OpenReply is self-hosted, so it only works on a deployment you run yourself, with your own Meta app and your own domain.")}{" "}
         <a
           href={SETUP_DOCS_URL}
           target="_blank"
           rel="noreferrer"
-          className="font-semibold text-warning underline underline-offset-2"
+          className="text-accent-text hover:underline"
         >
           {t("Read the setup guide")}
         </a>
@@ -109,7 +109,7 @@ export function DemoNotice({ variant }: { variant: "banner" | "panel" }) {
         type="button"
         onClick={dismiss}
         aria-label={t("Dismiss demo notice")}
-        className="absolute right-1 top-1 p-2 text-muted transition hover:text-foreground"
+        className="absolute right-1.5 top-1.5 rounded-full p-2 text-tertiary transition-colors hover:text-foreground"
       >
         <DismissIcon />
       </button>

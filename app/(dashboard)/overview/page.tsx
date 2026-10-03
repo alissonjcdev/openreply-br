@@ -28,12 +28,17 @@ function formatDate(iso: string, locale: Locale): string {
   return d.toLocaleDateString(locale, { month: "short", day: "numeric" });
 }
 
+// `short` is what fits a 390px phone in a four-segment control.
 const COUNT_OPTIONS = [
-  { value: "25", label: "Last 25" },
-  { value: "50", label: "Last 50" },
-  { value: "100", label: "Last 100" },
-  { value: "all", label: "All time" },
+  { value: "25", label: "Last 25", short: "25" },
+  { value: "50", label: "Last 50", short: "50" },
+  { value: "100", label: "Last 100", short: "100" },
+  { value: "all", label: "All time", short: null },
 ] as const;
+
+function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`rounded-md bg-surface-2 ${className}`} />;
+}
 
 export default function OverviewPage() {
   const { t, locale } = useI18n();
@@ -42,6 +47,7 @@ export default function OverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("all");
   const [count, setCount] = useState("50");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -62,11 +68,16 @@ export default function OverviewPage() {
       })
       .catch(() => setError("Failed to load overview"))
       .finally(() => setLoading(false));
-  }, [selectedAccountId, count]);
+  }, [selectedAccountId, count, reloadKey]);
 
   function handleAccountChange(accountId: string) {
     setLoading(true);
     setSelectedAccountId(accountId);
+  }
+
+  function handleRetry() {
+    setLoading(true);
+    setReloadKey((k) => k + 1);
   }
 
   function handleCountChange(next: string) {
@@ -74,31 +85,79 @@ export default function OverviewPage() {
     setCount(next);
   }
 
+  const rangeControl = (
+    <div
+      role="radiogroup"
+      aria-label={t("Range")}
+      className="segmented w-full sm:w-auto"
+    >
+      {COUNT_OPTIONS.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={count === o.value}
+          onClick={() => {
+            if (count !== o.value) handleCountChange(o.value);
+          }}
+        >
+          {o.short ? (
+            <>
+              <span className="sm:hidden">{o.short}</span>
+              <span className="hidden sm:inline">{t(o.label)}</span>
+            </>
+          ) : (
+            <>
+              <span className="sm:hidden">{t("All")}</span>
+              <span className="hidden sm:inline">{t(o.label)}</span>
+            </>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="panel rounded p-4 h-24 sm:p-5">
-            <div className="h-4 w-16 bg-border rounded" />
-            <div className="mt-3 h-6 w-20 bg-border/60 rounded" />
+      <div className="space-y-8" aria-busy="true">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-8 w-full sm:w-80" />
+        <div className="group p-6">
+          <div className="grid grid-cols-2 gap-6">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
           </div>
-        ))}
+          <Skeleton className="mt-8 h-12 w-full" />
+        </div>
+        <div className="group h-72" />
       </div>
     );
   }
 
   if (error) {
+    const needsConnect = error.includes("connect");
     return (
-      <div className="panel rounded p-8 text-center">
-        <p className="text-sm text-error">{error === "Failed to load overview" ? t("Failed to load overview") : error}</p>
-        {error.includes("connect") && (
-          <a
-            href="/api/instagram/connect"
-            className="mt-4 inline-block text-sm text-accent hover:underline"
-          >
-            {t("Connect Instagram")}
-          </a>
-        )}
+      <div className="space-y-8">
+        <h1 className="large-title">{t("Overview")}</h1>
+        <div className="group flex flex-col items-center px-6 py-14 text-center">
+          <p className="title-3">{t("Failed to load overview")}</p>
+          {error !== "Failed to load overview" && (
+            <p className="footnote mt-1 max-w-md">{error}</p>
+          )}
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {needsConnect && (
+              <a href="/api/instagram/connect" className="btn btn-primary">
+                {t("Connect Instagram")}
+              </a>
+            )}
+            <button type="button" onClick={handleRetry} className="btn btn-secondary">
+              {t("Refresh")}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -108,43 +167,29 @@ export default function OverviewPage() {
   const { totals, posts, accounts, insightsAvailable, followers, followerHistory } =
     data;
 
+  const secondary = [
+    { label: t("Likes"), value: totals.likes },
+    { label: t("Comments"), value: totals.comments },
+    { label: t("Saved"), value: totals.saved },
+    { label: t("Shares"), value: totals.shares },
+  ];
+
+  const postTitle = (p: (typeof posts)[number]) =>
+    p.caption || t("{type} post", { type: p.mediaType });
+
   return (
-    <div className="space-y-8">
-      {data.limitations?.map(note => <p key={note} className="text-sm text-muted">{note}</p>)}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-foreground">{t("Overview")}</h1>
-          <p className="text-sm text-muted mt-1">
-            {data.provider !== "ZERNIO" && data.requestedCount === "all" ? t("All-time") : t("Recent")} —{" "}
-            {t(totals.posts === 1 ? "{count} post" : "{count} posts", { count: totals.posts })} {t("from @")}
-            {data.account.username}
-            {data.truncated ? t(" (capped at {count})", { count: totals.posts }) : ""}
-          </p>
-          {followers !== null && (
-            // Kept out of the tile row below: that row sums the selected posts,
-            // whereas this is a current account-level total.
-            <p className="mt-1 text-sm text-muted">
-              {followers.toLocaleString(locale)} {t("followers")}
+    <div className="space-y-8 sm:space-y-10">
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="large-title">{t("Overview")}</h1>
+            <p className="footnote mt-1">
+              {data.provider !== "ZERNIO" && data.requestedCount === "all" ? t("All-time") : t("Recent")} —{" "}
+              {t(totals.posts === 1 ? "{count} post" : "{count} posts", { count: totals.posts })} {t("from @")}
+              {data.account.username}
+              {data.truncated ? t(" (capped at {count})", { count: totals.posts }) : ""}
             </p>
-          )}
-        </div>
-        <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {t("Range")}
-            </span>
-            <select
-              value={count}
-              onChange={(e) => handleCountChange(e.target.value)}
-              className="border-0 bg-transparent py-2 pr-1 text-sm text-foreground outline-none"
-            >
-              {COUNT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {t(o.label)}
-                </option>
-              ))}
-            </select>
-          </label>
+          </div>
           {accounts.length > 1 && (
             <AccountSelect
               accounts={accounts.map((a) => ({
@@ -157,110 +202,170 @@ export default function OverviewPage() {
             />
           )}
         </div>
+        {rangeControl}
+        {data.limitations?.map((note) => (
+          <p key={note} className="footnote">{note}</p>
+        ))}
       </div>
 
       {!insightsAvailable && (
-        <div className="panel rounded p-4 border border-border">
-          <p className="text-sm text-foreground">
-            {t("Views, reach, saved and shares need the insights permission.")}
-          </p>
-          <p className="text-sm text-muted mt-1">
-            {t("Reconnect your account to grant it — likes and comments are shown in the meantime.")}
-          </p>
-          <a
-            href="/api/instagram/connect"
-            className="mt-3 inline-block text-sm text-accent hover:underline"
-          >
-            {t("Reconnect Instagram")}
-          </a>
+        <div className="group">
+          <div className="group-row flex-col items-start gap-1 py-3.5 sm:flex-row sm:items-center sm:gap-6">
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px]">
+                {t("Views, reach, saved and shares need the insights permission.")}
+              </p>
+              <p className="footnote mt-0.5">
+                {t("Reconnect your account to grant it — likes and comments are shown in the meantime.")}
+              </p>
+            </div>
+            <a
+              href="/api/instagram/connect"
+              className="btn-plain mt-1 shrink-0 text-[15px] sm:mt-0"
+            >
+              {t("Reconnect Instagram")}
+            </a>
+          </div>
         </div>
       )}
 
-      {/* Aggregate totals */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <StatCard label={t("Views")} value={formatNumber(totals.views, locale)} />
-        <StatCard label={t("Reach")} value={formatNumber(totals.reach, locale)} />
-        <StatCard label={t("Likes")} value={formatNumber(totals.likes, locale)} />
-        <StatCard label={t("Comments")} value={formatNumber(totals.comments, locale)} />
-        <StatCard label={t("Saved")} value={formatNumber(totals.saved, locale)} />
-        <StatCard label={t("Shares")} value={formatNumber(totals.shares, locale)} />
-      </div>
+      {/* Totals for the selected posts: two hero metrics, the rest split by hairlines */}
+      <section className="group">
+        <div className="grid grid-cols-2">
+          <StatCard
+            size="lg"
+            label={t("Views")}
+            value={formatNumber(totals.views, locale)}
+            className="px-4 py-5 sm:px-6 sm:py-6"
+          />
+          <StatCard
+            size="lg"
+            label={t("Reach")}
+            value={formatNumber(totals.reach, locale)}
+            className="border-l-[0.5px] border-border-hover px-4 py-5 sm:px-6 sm:py-6"
+          />
+        </div>
+        <dl className="grid border-t-[0.5px] border-border-hover sm:grid-cols-4">
+          {secondary.map((m) => (
+            <div
+              key={m.label}
+              className="group-row justify-between sm:flex-col sm:items-start sm:justify-start sm:gap-1 sm:px-6 sm:py-4 sm:before:hidden sm:border-l-[0.5px] sm:border-border-hover sm:first:border-l-0"
+            >
+              <dt className="truncate text-[15px] sm:text-[13px] sm:text-muted">{m.label}</dt>
+              <dd className="numeral text-[17px] font-semibold sm:text-[26px] sm:leading-8">
+                {formatNumber(m.value, locale)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       {/* Follower trend — account-level, independent of the post range */}
       <FollowerChart data={followerHistory} followers={followers} />
 
-      {/* Per-post table */}
-      <div className="panel rounded p-4 sm:p-6">
-        <h2 className="text-sm font-semibold text-foreground mb-4">{t("Posts")}</h2>
-        {posts.length === 0 ? (
-          <p className="text-sm text-muted py-8 text-center">{t("No posts found")}</p>
-        ) : (
-          // Eight metric columns can't compress into a phone; let the table keep
-          // its natural width and scroll inside the panel instead.
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted border-b border-border">
-                  <th className="py-2 pr-4 font-medium">{t("Post")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Views")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Reach")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Likes")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Comments")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Saved")}</th>
-                  <th className="py-2 px-3 font-medium text-right">{t("Shares")}</th>
-                  <th className="py-2 pl-3 font-medium text-right">{t("Date")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {posts.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="py-3 pr-4 max-w-xs">
-                      {p.permalink ? (
+      {/* Per-post breakdown */}
+      <section>
+        <h2 className="group-header">{t("Posts")}</h2>
+        <div className="group">
+          {posts.length === 0 ? (
+            <p className="footnote px-4 py-12 text-center">{t("No posts found")}</p>
+          ) : (
+            <>
+              {/* Phones: one row per post, metrics as a secondary line */}
+              <div className="md:hidden">
+                {posts.map((p) => {
+                  const inner = (
+                    <>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-[15px] leading-5">{postTitle(p)}</p>
+                        <p className="caption mt-1 truncate">
+                          <span className="numeral">{formatNumber(p.views, locale)}</span> {t("Views")}
+                          {" · "}
+                          <span className="numeral">{formatNumber(p.likes, locale)}</span> {t("Likes")}
+                        </p>
+                      </div>
+                      <span className="caption shrink-0 self-start pt-0.5">
+                        {formatDate(p.timestamp, locale)}
+                      </span>
+                    </>
+                  );
+                  // Rows stay direct siblings so .group-row draws the hairlines.
+                  return p.permalink ? (
                         <a
+                          key={p.id}
                           href={p.permalink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-foreground hover:text-accent truncate block"
+                          className="group-row items-start py-3"
                         >
-                          {p.caption || t("{type} post", { type: p.mediaType })}
+                          {inner}
                         </a>
                       ) : (
-                        <span className="text-foreground truncate block">
-                          {p.caption || t("{type} post", { type: p.mediaType })}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.views, locale)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.reach, locale)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.likes, locale)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.comments, locale)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.saved, locale)}
-                    </td>
-                    <td className="py-3 px-3 text-right text-muted">
-                      {formatNumber(p.shares, locale)}
-                    </td>
-                    <td className="py-3 pl-3 text-right text-muted">
-                      {formatDate(p.timestamp, locale)}
-                    </td>
+                        <div key={p.id} className="group-row items-start py-3">{inner}</div>
+                      );
+                })}
+              </div>
+
+              {/* Wider screens: Numbers-style table with hairline rows */}
+              <table className="hidden w-full table-fixed text-[14px] md:table">
+                <colgroup>
+                  <col />
+                  <col className="w-[11%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[10%]" />
+                </colgroup>
+                <thead>
+                  <tr className="text-left text-[12px] text-muted">
+                    <th className="py-2.5 pl-5 pr-3 font-medium">{t("Post")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Views")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Reach")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Likes")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Comments")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Saved")}</th>
+                    <th className="px-3 py-2.5 text-right font-medium">{t("Shares")}</th>
+                    <th className="py-2.5 pl-3 pr-5 text-right font-medium">{t("Date")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {posts.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="border-t-[0.5px] border-border-hover transition-colors hover:bg-surface-hover"
+                    >
+                      <td className="py-2.5 pl-5 pr-3">
+                        {p.permalink ? (
+                          <a
+                            href={p.permalink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block truncate hover:text-accent-text"
+                          >
+                            {postTitle(p)}
+                          </a>
+                        ) : (
+                          <span className="block truncate">{postTitle(p)}</span>
+                        )}
+                      </td>
+                      {[p.views, p.reach, p.likes, p.comments, p.saved, p.shares].map((v, i) => (
+                        <td key={i} className="numeral px-3 py-2.5 text-right">
+                          {formatNumber(v, locale)}
+                        </td>
+                      ))}
+                      <td className="py-2.5 pl-3 pr-5 text-right text-muted">
+                        {formatDate(p.timestamp, locale)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

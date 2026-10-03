@@ -58,9 +58,10 @@ function formatDate(value: string, locale: string) {
 }
 
 function EmptyState({ label }: { label: string }) {
-  return <p className="py-5 text-center text-sm text-muted">{label}</p>;
+  return <p className="footnote px-4 py-6 text-center">{label}</p>;
 }
 
+/** Grouped inset list with a sentence-case header, like System Settings. */
 function Section({
   title,
   children,
@@ -69,11 +70,41 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="panel rounded p-4 sm:p-6">
-      <h2 className="text-base font-semibold text-foreground">{title}</h2>
-      <div className="mt-4">{children}</div>
+    <section className="min-w-0">
+      <h2 className="group-header">{title}</h2>
+      <div className="group">{children}</div>
     </section>
   );
+}
+
+/** One System Information row: label leading, value trailing. */
+function InfoRow({
+  label,
+  value,
+  detail,
+  valueClassName = "text-muted",
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="group-row justify-between gap-4">
+      <div className="min-w-0">
+        <p className="truncate text-[15px]">{label}</p>
+        {detail && <p className="caption mt-0.5 truncate">{detail}</p>}
+      </div>
+      <span className={`shrink-0 text-right text-[15px] ${valueClassName}`}>{value}</span>
+    </div>
+  );
+}
+
+function levelClass(level: string) {
+  const l = level.toLowerCase();
+  if (l.startsWith("err") || l === "fatal" || l === "critical") return "text-error";
+  if (l.startsWith("warn")) return "text-warning";
+  return "text-muted";
 }
 
 export default function DiagnosticsPage() {
@@ -113,173 +144,178 @@ export default function DiagnosticsPage() {
   }, []);
 
   if (loading && !data) {
-    return <div className="panel rounded p-8 h-64" />;
+    return (
+      <div className="mx-auto max-w-3xl space-y-8" aria-busy="true">
+        <div className="space-y-2">
+          <div className="h-9 w-72 rounded-md bg-surface-2" />
+          <div className="h-4 w-96 max-w-full rounded-md bg-surface-2" />
+        </div>
+        <div className="group h-28" />
+        <div className="group h-44" />
+      </div>
+    );
   }
 
   const workerAgeSeconds =
     data?.workerHealth.ageMs == null
       ? null
       : Math.round(data.workerHealth.ageMs / 1000);
+  const heartbeat = data?.workerHealth.heartbeat;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("Production Diagnostics")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="large-title">{t("Production Diagnostics")}</h1>
+          <p className="footnote mt-1">
             {t("Health, queues, webhook failures, billing events, and worker alerts.")}
           </p>
         </div>
         <button
+          type="button"
           onClick={() => void refreshDiagnostics()}
-          className="rounded border border-border bg-surface px-4 py-2 text-sm font-semibold text-foreground transition hover:border-border-hover"
+          disabled={loading}
+          className="btn btn-secondary btn-sm shrink-0 self-start sm:self-auto"
         >
           {t("Refresh")}
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
-        <div className="panel rounded p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase text-muted">
-            {t("Worker health")}
-          </p>
-          <p
-            className={`mt-3 text-2xl font-bold ${
+      <div className="grid gap-8 md:grid-cols-2 md:gap-6">
+        <Section title={t("Worker health")}>
+          <InfoRow
+            label={t("Status")}
+            value={data?.workerHealth.healthy ? t("Healthy") : t("Needs attention")}
+            valueClassName={`font-medium ${
               data?.workerHealth.healthy ? "text-success" : "text-warning"
             }`}
-          >
-            {data?.workerHealth.healthy ? t("Healthy") : t("Needs attention")}
-          </p>
-          <p className="mt-2 text-xs text-muted">
-            {workerAgeSeconds == null
-              ? t("No heartbeat found")
-              : t("Last heartbeat {seconds}s ago", { seconds: workerAgeSeconds })}
-          </p>
-        </div>
-        {["waiting", "active", "delayed", "failed"].map((key) => (
-          <div key={key} className="panel rounded p-4 sm:p-5">
-            <p className="text-xs font-semibold uppercase text-muted">
-              {t("Queue")} {label(key)}
-            </p>
-            <p className="mt-3 text-2xl font-bold text-foreground">
-              {data?.queueCounts[key] ?? 0}
-            </p>
-          </div>
-        ))}
+          />
+          <InfoRow
+            label={
+              workerAgeSeconds == null
+                ? t("No heartbeat found")
+                : t("Last heartbeat {seconds}s ago", { seconds: workerAgeSeconds })
+            }
+            value={
+              heartbeat ? (
+                <span className="numeral">
+                  {new Date(heartbeat.checkedAt).toLocaleTimeString(locale)}
+                </span>
+              ) : (
+                "—"
+              )
+            }
+            detail={
+              heartbeat
+                ? [heartbeat.hostname, `pid ${heartbeat.pid}`].filter(Boolean).join(" · ")
+                : undefined
+            }
+          />
+        </Section>
+
+        <Section title={t("Queue")}>
+          {["waiting", "active", "delayed", "failed"].map((key) => {
+            const value = data?.queueCounts[key] ?? 0;
+            return (
+              <InfoRow
+                key={key}
+                label={label(key)}
+                value={<span className="numeral">{value.toLocaleString(locale)}</span>}
+                valueClassName={
+                  key === "failed" && value > 0 ? "font-medium text-error" : "text-muted"
+                }
+              />
+            );
+          })}
+        </Section>
       </div>
 
       <Section title={t("Recent Worker Alerts")}>
         {data?.workerAlerts.length ? (
-          <div className="space-y-3">
-            {data.workerAlerts.map((alert) => (
-              <div
-                key={`${alert.createdAt}-${alert.jobId ?? alert.message}`}
-                className="rounded border border-border bg-surface/50 p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                  <p className="min-w-0 flex-1 break-words text-sm font-semibold text-foreground">
-                    {alert.message}
-                  </p>
-                  <span className="shrink-0 rounded-full bg-error/10 px-2 py-1 text-xs font-semibold text-error">
-                    {alert.level}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-muted">
+          data.workerAlerts.map((alert) => (
+            <div
+              key={`${alert.createdAt}-${alert.jobId ?? alert.message}`}
+              className="group-row items-start justify-between gap-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="break-words text-[15px]">{alert.message}</p>
+                <p className="caption mt-0.5">
                   {formatDate(alert.createdAt, locale)}
                   {alert.commentId ? ` · ${alert.commentId}` : ""}
                 </p>
               </div>
-            ))}
-          </div>
+              <span className={`shrink-0 text-[13px] font-medium ${levelClass(alert.level)}`}>
+                {alert.level}
+              </span>
+            </div>
+          ))
         ) : (
           <EmptyState label={t("No worker alerts recorded.")} />
         )}
       </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title={t("Campaign DM Failures And Skips")}>
-          {data?.dmFailures.length ? (
-            <div className="space-y-3">
-              {data.dmFailures.map((item) => (
-                <div key={item.id} className="border-b border-border pb-3 last:border-0">
-                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                    <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                      {item.automation.name}
-                    </p>
-                    <StatusBadge status={item.status} />
-                  </div>
-                  <p className="mt-1 truncate text-xs text-muted">
-                    {item.commentText}
-                  </p>
-                  {item.errorMessage && (
-                    <p className="mt-1 text-xs text-error">{item.errorMessage}</p>
-                  )}
-                </div>
-              ))}
+      <Section title={t("Campaign DM Failures And Skips")}>
+        {data?.dmFailures.length ? (
+          data.dmFailures.map((item) => (
+            <div key={item.id} className="group-row items-start justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-[15px]">{item.automation.name}</p>
+                <p className="footnote mt-0.5 truncate">{item.commentText}</p>
+                {item.errorMessage && (
+                  <p className="mt-0.5 text-[12px] leading-4 text-error">{item.errorMessage}</p>
+                )}
+              </div>
+              <StatusBadge status={item.status} className="pt-0.5" />
             </div>
-          ) : (
-            <EmptyState label={t("No DM failures or skips.")} />
-          )}
-        </Section>
+          ))
+        ) : (
+          <EmptyState label={t("No DM failures or skips.")} />
+        )}
+      </Section>
 
+      <div className="grid gap-8 md:grid-cols-2 md:gap-6">
         <Section title={t("Webhook Failures")}>
           {data?.webhookFailures.length ? (
-            <div className="space-y-3">
-              {data.webhookFailures.map((event) => (
-                <div key={event.id} className="border-b border-border pb-3 last:border-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {event.object ?? t("Instagram webhook")}
-                  </p>
-                  <p className="mt-1 text-xs text-error">
-                    {event.errorMessage ?? t("Unknown error")}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {formatDate(event.createdAt, locale)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            data.webhookFailures.map((event) => (
+              <div key={event.id} className="group-row flex-col items-start gap-0.5 py-3">
+                <p className="text-[15px]">{event.object ?? t("Instagram webhook")}</p>
+                <p className="text-[13px] leading-[18px] text-error">
+                  {event.errorMessage ?? t("Unknown error")}
+                </p>
+                <p className="caption">{formatDate(event.createdAt, locale)}</p>
+              </div>
+            ))
           ) : (
             <EmptyState label={t("No failed webhook events.")} />
           )}
         </Section>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
         <Section title={t("Token Refresh Failures")}>
           {data?.tokenRefreshFailures.length ? (
-            <div className="space-y-3">
-              {data.tokenRefreshFailures.map((event) => (
-                <div key={event.id} className="border-b border-border pb-3 last:border-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {event.message}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
-                    {formatDate(event.createdAt, locale)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            data.tokenRefreshFailures.map((event) => (
+              <div key={event.id} className="group-row flex-col items-start gap-0.5 py-3">
+                <p className="text-[15px]">{event.message}</p>
+                <p className="caption">{formatDate(event.createdAt, locale)}</p>
+              </div>
+            ))
           ) : (
             <EmptyState label={t("No token refresh failures.")} />
           )}
         </Section>
-
       </div>
 
       <Section title={t("Operational Event Timeline")}>
         {data?.operationalEvents.length ? (
-          <div className="space-y-3">
-            {data.operationalEvents.map((event) => (
-              <div key={event.id} className="grid gap-2 border-b border-border pb-3 last:border-0 sm:grid-cols-[140px_1fr_auto]">
-                <p className="text-xs font-semibold text-muted">{event.source}</p>
-                <p className="text-sm text-foreground">{event.message}</p>
-                <p className="text-xs text-muted">{formatDate(event.createdAt, locale)}</p>
-              </div>
-            ))}
-          </div>
+          data.operationalEvents.map((event) => (
+            <div
+              key={event.id}
+              className="group-row grid items-start gap-x-4 gap-y-0.5 py-3 sm:grid-cols-[120px_1fr_auto]"
+            >
+              <p className={`text-[13px] font-medium ${levelClass(event.level)}`}>{event.source}</p>
+              <p className="text-[15px]">{event.message}</p>
+              <p className="caption whitespace-nowrap">{formatDate(event.createdAt, locale)}</p>
+            </div>
+          ))
         ) : (
           <EmptyState label={t("No operational events recorded.")} />
         )}

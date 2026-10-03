@@ -125,7 +125,19 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return <div className="panel rounded p-8 h-64" />;
+    return (
+      <div className="mx-auto max-w-2xl" aria-busy="true">
+        <h1 className="large-title">{t("Settings")}</h1>
+        <div className="mt-8 space-y-8">
+          {[88, 132, 44].map((height, index) => (
+            <div key={index}>
+              <div className="mx-4 mb-2 h-3 w-28 rounded bg-surface-2" />
+              <div className="rounded-xl bg-surface" style={{ height }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const accounts = data?.instagramAccounts ?? [];
@@ -134,86 +146,59 @@ export default function SettingsPage() {
     membersData?.currentUserRole === "ADMIN";
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      {/* Surfaces the ?instagram= code the OAuth routes redirect back with.
-          Needs a Suspense boundary: useSearchParams in a prerendered client
-          page fails the production build without one. */}
-      <Suspense fallback={null}>
-        <InstagramConnectNotice />
-      </Suspense>
+    <div className="mx-auto max-w-2xl">
+      <h1 className="large-title">{t("Settings")}</h1>
 
-      <section className="panel rounded p-4 sm:p-6 space-y-3">
-        <h2 className="text-base font-semibold">{t("Interface language")}</h2>
-        <LanguageSwitcher />
-        <p className="text-sm text-muted">{t("Saved in this browser. Campaign messages stay unchanged.")}</p>
-        <div className="max-w-xs border-t border-border pt-4">
-          <ThemeToggle />
-        </div>
-      </section>
+      <div className="mt-6 space-y-8 sm:mt-8">
+        {/* Surfaces the ?instagram= code the OAuth routes redirect back with.
+            Needs a Suspense boundary: useSearchParams in a prerendered client
+            page fails the production build without one. */}
+        <Suspense fallback={null}>
+          <InstagramConnectNotice />
+        </Suspense>
 
-      <ZernioConnection canManage={canManageMembers} />
-
-      <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">{t("Instagram Connection")}</h2>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t("Status")}</p>
-              <p className="text-xs text-muted mt-0.5">
-                {t("Comment webhooks and private replies depend on this connection.")}
-              </p>
-            </div>
-            <span
-              className={`px-3 py-1.5 rounded-full text-xs font-medium ${
-                accounts.length > 0
-                  ? "bg-success/10 text-success"
-                  : "bg-warning/10 text-warning"
-              }`}
-            >
-              {accounts.length > 0 ? t("Connected") : t("Not connected")}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-medium text-foreground">{t("Accounts")}</p>
-              <p className="text-xs text-muted mt-0.5">
-                {t(accounts.length === 1 ? "{count} connected Instagram profile" : "{count} connected Instagram profiles", { count: accounts.length })}
-              </p>
-            </div>
-            <span className="text-sm text-muted">
-              {accounts.length > 0 ? t("{count} connected", { count: accounts.length }) : t("None")}
-            </span>
-          </div>
-
-          <div className="space-y-3 py-3">
-            {accounts.length === 0 && (
-              <p className="text-sm text-muted">
-                {t("Connect an Instagram professional account to launch campaigns.")}
-              </p>
-            )}
-            {accounts.map((account) => (
-              <div
-                key={account.id}
-                className="flex flex-col gap-3 rounded border border-border bg-surface/70 p-4 sm:flex-row sm:items-center sm:justify-between"
+        {/* Instagram account */}
+        <section aria-labelledby="settings-instagram">
+          <h2 id="settings-instagram" className="group-header">
+            {t("Instagram account")}
+          </h2>
+          <div className="group">
+            <div className="group-row">
+              <span className="text-[15px]">{t("Status")}</span>
+              <span
+                className={`ml-auto text-[15px] ${
+                  accounts.length > 0 ? "text-success" : "text-warning"
+                }`}
               >
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    @{account.username}
-                  </p>
-                  <p className="mt-1 text-xs text-muted">
+                {accounts.length > 0
+                  ? accounts.length > 1
+                    ? t("{count} connected", { count: accounts.length })
+                    : t("Connected")
+                  : t("Not connected")}
+              </span>
+            </div>
+
+            {accounts.map((account) => (
+              <div key={account.id} className="group-row flex-wrap gap-y-2 py-2.5">
+                <Monogram name={account.username} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-medium">@{account.username}</p>
+                  <p className="footnote">
                     {account.provider === "ZERNIO" ? t("Connected via Zernio") : <>{t("Token expires")}{" "}
                     {account.tokenExpiresAt
                       ? new Date(account.tokenExpiresAt).toLocaleDateString(locale)
-                      : t("not available")}</>}{" "}
-                    · {account.webhookSubscribed ? t("Webhook ready") : t("Webhook pending")}
+                      : t("not available")}</>}
+                    {" · "}
+                    <span className={account.webhookSubscribed ? "" : "text-warning"}>
+                      {account.webhookSubscribed ? t("Webhook ready") : t("Webhook pending")}
+                    </span>
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => disconnectInstagram(account.id)}
                   disabled={busy === `disconnect:${account.id}`}
-                  className="inline-flex items-center justify-center rounded border border-error/20 px-4 py-2 text-sm font-medium text-error transition-all hover:border-error/40 hover:bg-error/10 disabled:opacity-50"
+                  className="btn btn-sm btn-destructive ml-auto"
                 >
                   {busy === `disconnect:${account.id}`
                     ? t("Disconnecting...")
@@ -221,66 +206,137 @@ export default function SettingsPage() {
                 </button>
               </div>
             ))}
+
+            <a href="/api/instagram/connect" className="group-row text-[15px] text-accent-text">
+              {t("Connect using your own Meta app")}
+            </a>
           </div>
-        </div>
+          <p className="group-footer">
+            {accounts.length === 0
+              ? t("Connect an Instagram professional account to launch campaigns.")
+              : t("Comment webhooks and private replies depend on this connection.")}
+          </p>
+        </section>
 
-        <div className="mt-6 pt-4 border-t border-border flex gap-3">
-          <a
-            href="/api/instagram/connect"
-            className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-on-accent hover:bg-accent-hover"
-          >
-            {t("Connect using your own Meta app")}
-          </a>
-        </div>
-      </section>
+        {/* Integrations */}
+        <section aria-labelledby="settings-integrations">
+          <h2 id="settings-integrations" className="group-header">
+            {t("Integrations")}
+          </h2>
+          <ZernioConnection canManage={canManageMembers} />
+        </section>
 
-      <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">{t("Team")}</h2>
-        <div className="space-y-3">
-          {membersData?.members.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center justify-between gap-4 border-b border-border py-3 last:border-0"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {member.user.name ?? member.user.email ?? t("Unknown member")}
-                </p>
-                <p className="text-xs text-muted">{member.user.email}</p>
-              </div>
-              <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted">
-                {label(member.role)}
-              </span>
-            </div>
-          ))}
-        </div>
+        {/* Appearance */}
+        <section aria-labelledby="settings-appearance">
+          <h2 id="settings-appearance" className="group-header">
+            {t("Appearance")}
+          </h2>
+          <div className="group">
+            <ThemeToggle />
+          </div>
+        </section>
+
+        {/* Language. The menu opens a popover, so this group must not clip. */}
+        <section aria-labelledby="settings-language">
+          <h2 id="settings-language" className="group-header">
+            {t("Interface language")}
+          </h2>
+          <div className="group overflow-visible">
+            <LanguageSwitcher variant="row" />
+          </div>
+          <p className="group-footer">
+            {t("Saved in this browser. Campaign messages stay unchanged.")}
+          </p>
+        </section>
+
+        {/* Team */}
+        <section aria-labelledby="settings-team">
+          <h2 id="settings-team" className="group-header">
+            {t("Team")}
+          </h2>
+          <div className="group">
+            {membersData?.members.map((member) => {
+              const name = member.user.name ?? member.user.email ?? t("Unknown member");
+              return (
+                <div key={member.id} className="group-row py-2.5">
+                  <Monogram name={name} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px]">{name}</p>
+                    {member.user.email && member.user.email !== name && (
+                      <p className="footnote truncate">{member.user.email}</p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[15px] text-muted">
+                    {label(member.role)}
+                  </span>
+                </div>
+              );
+            })}
+            {canManageMembers && (
+              <form onSubmit={inviteMember} className="group-row flex-wrap gap-y-3 py-3">
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                  placeholder="teammate@agency.com"
+                  aria-label={t("Email")}
+                  className="field min-w-0 flex-1 basis-60"
+                  required
+                />
+                <div className="flex w-full items-center gap-3 sm:w-auto">
+                  <div role="radiogroup" aria-label={t("Role")} className="segmented">
+                    {(["MEMBER", "ADMIN"] as const).map((role) => (
+                      <button
+                        key={role}
+                        type="button"
+                        role="radio"
+                        aria-checked={inviteRole === role}
+                        onClick={() => setInviteRole(role)}
+                      >
+                        {label(role)}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={busy === "invite"}
+                    className="btn btn-primary ml-auto"
+                  >
+                    {busy === "invite" ? t("Inviting...") : t("Invite")}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+          {memberError && (
+            <p role="alert" className="group-footer text-error">{memberError}</p>
+          )}
+        </section>
 
         {membersData?.invitations.length ? (
-          <div className="mt-6 border-t border-border pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
+          <section aria-labelledby="settings-invites">
+            <h2 id="settings-invites" className="group-header">
               {t("Pending invites")}
-            </p>
-            <div className="space-y-3">
+            </h2>
+            <div className="group">
               {membersData.invitations.map((invitation) => (
                 <div
                   key={invitation.id}
-                  className="flex flex-col gap-3 rounded border border-border bg-surface/70 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="group-row flex-wrap gap-y-2 py-2.5"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {invitation.email}
-                    </p>
-                    <p className="truncate text-xs text-muted">
+                  <div className="min-w-0 flex-1 basis-56">
+                    <p className="truncate text-[15px]">{invitation.email}</p>
+                    <p className="footnote truncate">
                       {label(invitation.role)} · {invitation.inviteUrl}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="ml-auto flex shrink-0 gap-2">
                     <button
                       type="button"
                       onClick={() =>
                         void navigator.clipboard?.writeText(invitation.inviteUrl)
                       }
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
+                      className="btn btn-sm btn-secondary"
                     >
                       {t("Copy")}
                     </button>
@@ -288,7 +344,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => removeInvitation(invitation.id)}
                       disabled={busy === `invite:${invitation.id}`}
-                      className="rounded-lg border border-error/20 px-3 py-1.5 text-xs font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
+                      className="btn btn-sm btn-destructive"
                     >
                       {t("Revoke")}
                     </button>
@@ -296,62 +352,38 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </section>
         ) : null}
 
-        {canManageMembers && (
-          <form
-            onSubmit={inviteMember}
-            className="mt-6 grid gap-3 border-t border-border pt-4 sm:grid-cols-[1fr_140px_auto]"
-          >
-            <input
-              type="email"
-              value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
-              placeholder="teammate@agency.com"
-              className="rounded border border-border bg-surface px-4 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
-              required
-            />
-            <select
-              value={inviteRole}
-              onChange={(event) =>
-                setInviteRole(event.target.value as "ADMIN" | "MEMBER")
-              }
-              className="rounded border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-accent/40"
-            >
-              <option value="MEMBER">{t("Member")}</option>
-              <option value="ADMIN">{t("Admin")}</option>
-            </select>
-            <button
-              type="submit"
-              disabled={busy === "invite"}
-              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:opacity-50"
-            >
-              {busy === "invite" ? t("Inviting...") : t("Invite")}
-            </button>
-            {memberError && (
-              <p className="sm:col-span-3 text-sm text-error">{memberError}</p>
-            )}
-          </form>
-        )}
-      </section>
-
-      <section className="panel rounded p-4 sm:p-6">
-        <h2 className="text-base font-semibold mb-6">{t("Usage")}</h2>
-        <div className="flex items-center justify-between gap-3 py-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {t("DMs sent this month")}
-            </p>
-            <p className="text-xs text-muted mt-0.5">
-              {t("Self-hosted — no plan limits.")}
-            </p>
+        {/* Usage */}
+        <section aria-labelledby="settings-usage">
+          <h2 id="settings-usage" className="group-header">
+            {t("Usage")}
+          </h2>
+          <div className="group">
+            <div className="group-row">
+              <span className="text-[15px]">{t("DMs sent this month")}</span>
+              <span className="numeral ml-auto text-[15px] text-muted">
+                {(data?.workspace.dmsSentThisPeriod ?? 0).toLocaleString(locale)}
+              </span>
+            </div>
           </div>
-          <span className="text-sm font-semibold text-foreground">
-            {data?.workspace.dmsSentThisPeriod ?? 0}
-          </span>
-        </div>
-      </section>
+          <p className="group-footer">{t("Self-hosted — no plan limits.")}</p>
+        </section>
+      </div>
     </div>
+  );
+}
+
+/** Neutral initial in a gray circle, like a contact without a photo. */
+function Monogram({ name }: { name: string }) {
+  const initial = name.replace(/^@/, "").trim().charAt(0).toUpperCase() || "?";
+  return (
+    <span
+      aria-hidden
+      className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-[13px] font-semibold text-muted"
+    >
+      {initial}
+    </span>
   );
 }

@@ -55,22 +55,21 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/**
+ * Theme picker as a settings row: label on the leading edge, a segmented
+ * control (Sistema / Claro / Escuro) on the trailing edge.
+ */
 export default function ThemeToggle() {
   const { t } = useI18n();
-  // The sidebar and the settings page can both render a toggle at once.
   const labelId = useId();
   const theme = useSyncExternalStore(subscribe, readTheme, () => "system");
 
   return (
-    <div className="space-y-1.5">
-      <p id={labelId} className="text-sm text-muted">
+    <div className="group-row flex-wrap justify-between gap-y-2">
+      <span id={labelId} className="text-[15px]">
         {t("Theme")}
-      </p>
-      <div
-        role="radiogroup"
-        aria-labelledby={labelId}
-        className="grid grid-cols-3 rounded border border-border bg-background p-0.5"
-      >
+      </span>
+      <div role="radiogroup" aria-labelledby={labelId} className="segmented">
         {OPTIONS.map((option) => {
           const selected = theme === option.value;
           return (
@@ -80,11 +79,7 @@ export default function ThemeToggle() {
               role="radio"
               aria-checked={selected}
               onClick={() => saveTheme(option.value)}
-              className={`min-h-8 truncate rounded-sm px-2 text-xs ${
-                selected
-                  ? "bg-surface-hover font-medium text-foreground"
-                  : "text-muted hover:text-foreground"
-              }`}
+              className="min-w-[72px]"
             >
               {t(option.label)}
             </button>

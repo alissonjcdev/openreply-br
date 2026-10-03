@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
-/* ManyChat Alternative — Design System
-   Plain and functional. No gradients, glass, glow, shadows or animation.
+/* OpenReply — Apple-style design system (HIG-inspired)
+   SF system font, grouped inset lists, hairline separators, systemBlue accent,
+   materials only where content scrolls behind. No drop shadows, no gradients.
 
    Colors are CSS variables that change per theme. Tailwind utilities
    (bg-background, text-muted, border-border, ...) point at them through
@@ -11,7 +12,17 @@
    - html without data-theme  -> follows the OS (prefers-color-scheme)
    - html[data-theme="light"] -> light
    - html[data-theme="dark"]  -> dark
-   Any element can carry data-theme to pin its subtree to one palette. */
+   Any element can carry data-theme to pin its subtree to one palette.
+
+   Token meaning:
+   background  = window / grouped background (systemGroupedBackground)
+   surface     = cell / card (secondarySystemGroupedBackground)
+   surface-2   = fill for fields and segmented tracks (tertiary fill)
+   border      = separator (hairline)
+   muted       = secondaryLabel
+   accent      = tint (systemBlue)
+   success/error/warning = accessible label variants of systemGreen/Red/Orange
+   switch-on   = systemGreen, for toggle switches only */
 
 @theme inline {
   --color-background: var(--background);
@@ -22,6 +33,7 @@
   --color-border: var(--border);
   --color-border-hover: var(--border-hover);
   --color-muted: var(--muted);
+  --color-tertiary: var(--tertiary);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
   --color-accent-text: var(--accent-text);
@@ -30,9 +42,20 @@
   --color-success: var(--success);
   --color-error: var(--error);
   --color-warning: var(--warning);
+  --color-switch-on: var(--switch-on);
   --color-overlay: var(--overlay);
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --color-material: var(--material);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Helvetica Neue", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", "Helvetica Neue", system-ui, sans-serif;
+  --font-rounded: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  /* Continuous, generous corners like macOS/iOS. */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 }
 
 /* Light (default). Also re-applied on any subtree pinned to light, and on
@@ -42,81 +65,95 @@
 .zernio-sponsor,
 .or-landing {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #18181b;
-  --surface: #f7f7f8;
-  --surface-hover: #efeff1;
-  --surface-2: #f1f1f3;
-  --border: #e4e4e7;
-  --border-hover: #d4d4d8;
-  --muted: #71717a;
-  --accent: #f97316;
-  --accent-hover: #ea580c;
-  --accent-text: #c2410c;
-  --accent-soft: #fff4eb;
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --surface: #ffffff;
+  --surface-hover: #f2f2f4;
+  --surface-2: #ececf0;
+  --border: #e3e3e8;
+  --border-hover: #d1d1d6;
+  --muted: #6e6e73;
+  --tertiary: #aeaeb2;
+  --accent: #007aff;
+  --accent-hover: #0068d9;
+  --accent-text: #0066cc;
+  --accent-soft: #e8f1fe;
   --on-accent: #ffffff;
-  --success: #16a34a;
-  --error: #dc2626;
-  --warning: #d97706;
-  --overlay: rgb(24 24 27 / 0.5);
+  --success: #248a3d;
+  --error: #d70015;
+  --warning: #c93400;
+  --switch-on: #34c759;
+  --overlay: rgb(0 0 0 / 0.32);
+  --material: rgb(246 246 248 / 0.78);
 }
 
 /* Dark, following the OS when the user has not picked a theme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --background: #141416;
-    --foreground: #e7e7ea;
-    --surface: #1c1c1f;
-    --surface-hover: #26262a;
-    --surface-2: #232327;
-    --border: #2e2e33;
-    --border-hover: #3f3f46;
-    --muted: #a1a1aa;
-    --accent: #f97316;
-    --accent-hover: #fb923c;
-    --accent-text: #fb923c;
-    --accent-soft: #2a1c12;
-    --on-accent: #18181b;
-    --success: #4ade80;
-    --error: #f87171;
-    --warning: #fbbf24;
-    --overlay: rgb(0 0 0 / 0.6);
+    --background: #000000;
+    --foreground: #f5f5f7;
+    --surface: #1c1c1e;
+    --surface-hover: #242426;
+    --surface-2: #2c2c2e;
+    --border: #2f2f32;
+    --border-hover: #48484a;
+    --muted: #98989d;
+    --tertiary: #636366;
+    --accent: #0a84ff;
+    --accent-hover: #409cff;
+    --accent-text: #4aa3ff;
+    --accent-soft: #0b2440;
+    --on-accent: #ffffff;
+    --success: #30d158;
+    --error: #ff453a;
+    --warning: #ff9f0a;
+    --switch-on: #30d158;
+    --overlay: rgb(0 0 0 / 0.5);
+    --material: rgb(22 22 24 / 0.78);
   }
 }
 
 /* Dark, picked explicitly (or pinned on a subtree). Same values as above. */
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #141416;
-  --foreground: #e7e7ea;
-  --surface: #1c1c1f;
-  --surface-hover: #26262a;
-  --surface-2: #232327;
-  --border: #2e2e33;
-  --border-hover: #3f3f46;
-  --muted: #a1a1aa;
-  --accent: #f97316;
-  --accent-hover: #fb923c;
-  --accent-text: #fb923c;
-  --accent-soft: #2a1c12;
-  --on-accent: #18181b;
-  --success: #4ade80;
-  --error: #f87171;
-  --warning: #fbbf24;
-  --overlay: rgb(0 0 0 / 0.6);
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --surface: #1c1c1e;
+  --surface-hover: #242426;
+  --surface-2: #2c2c2e;
+  --border: #2f2f32;
+  --border-hover: #48484a;
+  --muted: #98989d;
+  --tertiary: #636366;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-text: #4aa3ff;
+  --accent-soft: #0b2440;
+  --on-accent: #ffffff;
+  --success: #30d158;
+  --error: #ff453a;
+  --warning: #ff9f0a;
+  --switch-on: #30d158;
+  --overlay: rgb(0 0 0 / 0.5);
+  --material: rgb(22 22 24 / 0.78);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Focus ring — visible, for keyboard users. */
+/* Focus ring — the macOS keyboard focus ring: tinted, soft, hugging. */
 :focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
 }
 
 /* Form fields already have a border, so keep the focus ring hugging the
@@ -138,18 +175,12 @@ select:focus-visible {
   }
 }
 
-/* Panel — flat container. Replaces .glass / .glass-strong. */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-/* Kept as no-op aliases so existing markup degrades to plain surfaces
-   instead of breaking. Prefer .panel in new code. */
+/* Panel — grouped container (a card of cells). */
+.panel,
 .glass,
 .glass-strong {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .gradient-mesh {
@@ -189,3 +220,168 @@ select:focus-visible {
   font-display: swap;
 }
 .zernio-sponsor { font-family: 'Zernio Geist', sans-serif; }
+
+/* ------------------------------------------------------------------
+   Apple-style primitives. Use these instead of ad-hoc utility stacks.
+   ------------------------------------------------------------------ */
+@layer components {
+  /* Large title (iOS/macOS page title) */
+  .large-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+  }
+  @media (min-width: 1024px) {
+    .large-title { font-size: 34px; line-height: 41px; }
+  }
+  .title-2 { font-family: var(--font-display); font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  .title-3 { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.015em; }
+  .footnote { font-size: 13px; line-height: 18px; color: var(--muted); letter-spacing: -0.005em; }
+  .caption { font-size: 12px; line-height: 16px; color: var(--muted); }
+  .numeral { font-family: var(--font-rounded); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+  /* Grouped inset list: section header + rounded group of rows + footer */
+  .group-header { padding: 0 16px 6px; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--muted); }
+  .group-footer { padding: 6px 16px 0; font-size: 13px; line-height: 18px; color: var(--muted); }
+  .group {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .group-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  /* Hairline separator inset from the leading edge, like UITableView. */
+  .group-row + .group-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    border-top: 0.5px solid var(--border-hover);
+  }
+  a.group-row:hover, button.group-row:hover { background: var(--surface-hover); }
+  .group-row > .chevron { margin-left: auto; color: var(--tertiary); flex-shrink: 0; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    transition: background-color 120ms ease, opacity 120ms ease, color 120ms ease;
+    user-select: none;
+  }
+  .btn:disabled { opacity: 0.4; pointer-events: none; }
+  .btn-sm { min-height: 28px; padding: 0 11px; font-size: 13px; }
+  .btn-lg { min-height: 44px; padding: 0 22px; font-size: 16px; }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary { background: var(--surface-2); color: var(--accent-text); }
+  .btn-secondary:hover { background: color-mix(in srgb, var(--surface-2) 80%, var(--foreground) 8%); }
+  .btn-destructive { background: var(--surface-2); color: var(--error); }
+  .btn-plain { min-height: auto; padding: 0; border-radius: 4px; color: var(--accent-text); }
+  .btn-plain:hover { opacity: 0.75; }
+
+  /* Text fields */
+  .field {
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    color: var(--foreground);
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .field::placeholder { color: var(--tertiary); }
+  .field:focus { outline: none; background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  textarea.field { min-height: 88px; resize: vertical; }
+
+  /* iOS switch */
+  .switch {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    width: 42px;
+    height: 26px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    transition: background-color 180ms ease;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #fff;
+    transition: transform 220ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  }
+  .switch[aria-checked="true"], .switch.on { background: var(--switch-on); }
+  .switch[aria-checked="true"]::after, .switch.on::after { transform: translateX(16px); }
+
+  /* Segmented control */
+  .segmented {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 9px;
+    background: var(--surface-2);
+  }
+  .segmented > button, .segmented > a {
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foreground);
+    white-space: nowrap;
+    transition: background-color 150ms ease;
+  }
+  .segmented > [aria-checked="true"], .segmented > [aria-selected="true"], .segmented > [aria-current="page"], .segmented > .active {
+    background: var(--surface);
+    outline: 0.5px solid var(--border-hover);
+    outline-offset: 0;
+  }
+
+  /* Translucent material for bars and popovers (no shadow). */
+  .material {
+    background: var(--material);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .popover {
+    background: var(--material);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius-md);
+  }
+}
+
+/* Clean scrollbars: thin thumb, transparent track, visible on hover only. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
+:hover::-webkit-scrollbar-thumb { background-color: color-mix(in srgb, var(--foreground) 22%, transparent); }
+::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }

@@ -3,15 +3,20 @@
 /**
  * Campaigns List Page
  *
- * Shows all campaigns as cards with toggle and delete.
+ * Large title, a toolbar (search, status segmented control, account menu) and
+ * the campaigns as one grouped inset list: each row carries its status as
+ * colored text, its trigger as muted text, the numbers right-aligned, an iOS
+ * switch and a "more" menu.
  */
 
 import { useI18n } from "@/lib/i18n/provider";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import { readCache, writeCache } from "@/lib/client-cache";
+import { ChevronRight, Ellipsis, Plus, Search } from "lucide-react";
 
 interface Campaign {
   id: string;
@@ -80,7 +85,14 @@ export default function CampaignsPage() {
     url: string;
     postUrl: string | null;
   } | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  // The open row menu: which campaign, and where to anchor it on screen.
+  const [menu, setMenu] = useState<{
+    id: string;
+    top: number;
+    right: number;
+  } | null>(null);
+  const menuOpenId = menu?.id ?? null;
+  const closeMenu = useCallback(() => setMenu(null), []);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">(
@@ -194,6 +206,16 @@ export default function CampaignsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [playingVideo]);
 
+  function openMenu(id: string, anchor: HTMLElement) {
+    if (menuOpenId === id) return closeMenu();
+    const rect = anchor.getBoundingClientRect();
+    setMenu({
+      id,
+      top: rect.bottom + 6,
+      right: Math.max(12, window.innerWidth - rect.right),
+    });
+  }
+
   function handleAccountChange(accountId: string) {
     setLoading(true);
     setSelectedAccountId(accountId);
@@ -215,7 +237,7 @@ export default function CampaignsPage() {
   }
 
   async function copyReelUrl(auto: Campaign) {
-    setMenuOpenId(null);
+    closeMenu();
     if (!auto.postUrl) return;
     try {
       await navigator.clipboard.writeText(auto.postUrl);
@@ -243,7 +265,7 @@ export default function CampaignsPage() {
   // list never loads (the DM trigger, the follow-up, the link button label)
   // still come along.
   async function duplicateAutomation(id: string) {
-    setMenuOpenId(null);
+    closeMenu();
     try {
       const res = await fetch(`/api/automations/duplicate?id=${id}`, {
         method: "POST",
@@ -258,10 +280,18 @@ export default function CampaignsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="panel rounded p-6 h-36" />
-        ))}
+      <div className="mx-auto max-w-5xl space-y-6">
+        <div className="h-[41px] w-48 rounded-md bg-surface-2" />
+        <div className="group">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="group-row min-h-[72px]">
+              <div className="flex-1 space-y-2">
+                <div className="h-3.5 w-40 rounded bg-surface-2" />
+                <div className="h-3 w-64 max-w-full rounded bg-surface-2" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -277,80 +307,87 @@ export default function CampaignsPage() {
       a.dmMessage.toLowerCase().includes(query)
     );
   });
+  const menuCampaign = menu
+    ? automations.find((a) => a.id === menu.id) ?? null
+    : null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm text-muted">
-            {filtered.length !== automations.length
-              ? t("{count} of {total} campaigns", { count: filtered.length, total: automations.length })
-              : t(automations.length === 1 ? "{count} campaign" : "{count} campaigns", { count: automations.length })}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          {accounts.length > 1 && (
-            <AccountSelect
-              accounts={accounts}
-              value={selectedAccountId}
-              onChange={handleAccountChange}
-            />
-          )}
-          <Link
-            href="/campaigns/import"
-            className="flex-1 rounded border border-border px-4 py-2 text-center text-sm font-medium text-muted hover:text-foreground sm:flex-none"
-          >
+    <div className="mx-auto max-w-5xl space-y-6">
+      {/* Title + primary actions */}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <h1 className="large-title">{t("Campaigns")}</h1>
+        <div className="flex items-center gap-2">
+          <Link href="/campaigns/import" className="btn btn-secondary">
             {t("Import")}
           </Link>
-          <Link
-            href="/campaigns/new"
-            className="flex-1 rounded bg-accent px-4 py-2 text-center text-sm font-medium text-on-accent hover:bg-accent-hover sm:flex-none"
-          >
+          <Link href="/campaigns/new" className="btn btn-primary">
+            <Plus aria-hidden strokeWidth={2.2} className="-ml-0.5 size-4" />
             {t("New Campaign")}
           </Link>
         </div>
       </div>
 
-      {/* Search + status filter */}
-      {automations.length > 0 && (
+      {/* Toolbar: search, status, account */}
+      {(automations.length > 0 || accounts.length > 1) && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("Search campaigns by name, keyword, or message…")}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none"
-          />
-          <div className="inline-flex shrink-0 rounded-lg bg-surface p-1">
-            {(["all", "active", "paused"] as const).map((s) => (
-              <button
-                key={label(s)}
-                type="button"
-                onClick={() => setStatusFilter(s)}
-                className={`rounded-md px-3 py-1.5 text-sm capitalize transition-colors ${
-                  statusFilter === s
-                    ? "bg-background font-medium text-foreground ring-1 ring-accent/40"
-                    : "text-muted hover:text-foreground"
-                }`}
+          {automations.length > 0 && (
+            <label className="relative block min-w-0 sm:max-w-sm sm:flex-1">
+              <span className="sr-only">
+                {t("Search campaigns by name, keyword, or message…")}
+              </span>
+              <Search
+                aria-hidden
+                strokeWidth={2}
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("Search")}
+                className="field h-9 min-h-0 pl-8 pr-3 text-[14px] [&::-webkit-search-cancel-button]:hidden"
+              />
+            </label>
+          )}
+          <div className="flex min-w-0 items-center gap-3 sm:ml-auto">
+            {automations.length > 0 && (
+              <div
+                role="radiogroup"
+                aria-label={t("Status")}
+                className="segmented shrink-0"
               >
-                {label(s)}
-              </button>
-            ))}
+                {(["all", "active", "paused"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="radio"
+                    aria-checked={statusFilter === s}
+                    onClick={() => setStatusFilter(s)}
+                  >
+                    {label(s)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {accounts.length > 1 && (
+              <AccountSelect
+                accounts={accounts}
+                value={selectedAccountId}
+                onChange={handleAccountChange}
+              />
+            )}
           </div>
         </div>
       )}
 
       {/* Empty state */}
       {automations.length === 0 && (
-        <div className="panel rounded p-8 text-center sm:p-12">
-          <h3 className="text-lg font-semibold mb-2">{t("No campaigns yet")}</h3>
-          <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
+        <div className="group px-6 py-14 text-center">
+          <h2 className="title-3">{t("No campaigns yet")}</h2>
+          <p className="footnote mx-auto mt-1.5 max-w-sm">
             {t("Create your first comment-to-DM campaign to turn a post or reel into a measurable conversation flow.")}
           </p>
-          <Link
-            href="/campaigns/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-accent text-sm font-semibold text-on-accent hover:bg-accent-hover transition-colors"
-          >
+          <Link href="/campaigns/new" className="btn btn-primary mt-5">
             {t("Create Campaign")}
           </Link>
         </div>
@@ -358,225 +395,212 @@ export default function CampaignsPage() {
 
       {/* No matches for the current filter */}
       {automations.length > 0 && filtered.length === 0 && (
-        <div className="panel rounded p-8 text-center text-sm text-muted">
-          {t("No campaigns match your search.")}
+        <div className="group px-6 py-10 text-center">
+          <p className="footnote">{t("No campaigns match your search.")}</p>
         </div>
       )}
 
-      {/* Campaign cards */}
-      <div className="space-y-3">
-        {filtered.map((auto) => {
-          const videoUrl = auto.postId ? videos[auto.postId] : undefined;
-          return (
-          <div
-            key={auto.id}
-            onClick={() => router.push(`/campaigns/${auto.id}`)}
-            className="panel rounded p-4 hover:border-border-hover transition-all cursor-pointer"
-          >
-            {/* Wraps rather than compressing: on a phone the action buttons drop
-                to their own line instead of squeezing the campaign summary. */}
-            <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-              {auto.postId && thumbnails[auto.postId] && (
-                videoUrl ? (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPlayingVideo({ url: videoUrl, postUrl: auto.postUrl });
-                    }}
-                    aria-label={t("Play reel preview")}
-                    className="shrink-0"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={thumbnails[auto.postId]}
-                      alt={t("Campaign reel")}
-                      className="w-12 h-12 rounded object-cover border border-border hover:border-border-hover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </button>
-                ) : (
-                  <a
-                    href={auto.postUrl ?? "#"}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="shrink-0"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={thumbnails[auto.postId]}
-                      alt={t("Campaign post")}
-                      className="w-12 h-12 rounded object-cover border border-border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  </a>
-                )
-              )}
-              <div className="min-w-[12rem] flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h3 className="text-sm font-semibold truncate">{auto.name}</h3>
-                  <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-xs text-muted">
-                    @{auto.instagramAccount.username}
-                  </span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      auto.isActive
-                        ? "bg-success/10 text-success"
-                        : "bg-muted/10 text-muted"
-                    }`}
-                  >
-                    {auto.isActive ? t("Active") : t("Paused")}
-                  </span>
-                  {auto.pendingNextReel && (
-                    <span className="shrink-0 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-                      {t("Waiting for next reel")}
-                    </span>
-                  )}
-                  {auto.requireFollow && (
-                    <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                      {t("Follow gate")}
-                    </span>
-                  )}
-                  {auto.trackedLinks.length >= 2 && (
-                    <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                      {t("2 links")}
-                    </span>
-                  )}
-                </div>
-
-                {/* Keywords */}
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {auto.keywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="px-2 py-0.5 rounded-md bg-accent/10 text-accent text-xs font-medium border border-accent/10"
-                    >
-                      {kw}
-                    </span>
-                  ))}
-                </div>
-
-                {/* DM preview */}
-                <p className="text-sm text-muted truncate">&ldquo;{auto.dmMessage}{t("”")}</p>
-
-                {/* Tracked link sent */}
-                {auto.trackedLinks[0]?.trackedUrl && (
-                  <p className="mt-2 truncate font-mono text-xs text-muted">
-                    {auto.trackedLinks[0].trackedUrl}
-                  </p>
-                )}
-
-                {/* Stats */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-muted">
-                  <span className="font-medium text-foreground">
-                    {auto._count.dmLogs} {t("runs")}
-                  </span>
-                  <span>·</span>
-                  <span className="font-medium text-foreground">
-                    {auto.analytics.ctr}{t("% CTR")}
-                  </span>
-                  <span>·</span>
-                  <span>{auto.analytics.sent} {t("sent")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.skipped} {t("skipped")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.failed} {t("failed")}</span>
-                  <span>·</span>
-                  <span>{auto.analytics.clicks} {t("clicks")}</span>
-                </div>
-
-                {auto.analytics.topKeywords.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {auto.analytics.topKeywords.map((keyword) => (
-                      <span
-                        key={keyword.keyword}
-                        className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted"
-                      >
-                        {keyword.keyword}: {keyword.count}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div
-                className="ml-auto flex items-center gap-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Copy reel URL */}
-                {auto.postUrl && (
-                  <button
-                    onClick={() => void copyReelUrl(auto)}
-                    className="shrink-0 rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-border-hover hover:text-foreground"
-                  >
-                    {copiedId === auto.id ? t("Copied!") : t("Copy URL")}
-                  </button>
-                )}
-                {/* Toggle */}
-                <button
-                  onClick={() => toggleActive(auto.id, auto.isActive)}
-                  className={`
-                    relative w-11 h-6 rounded-full transition-colors
-                    ${auto.isActive ? "bg-accent" : "bg-border-hover"}
-                  `}
-                >
-                  <span
-                    className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
-                      ${auto.isActive ? "left-6" : "left-1"}
-                    `}
-                  />
-                </button>
-
-                {/* Kebab menu */}
-                <div className="relative">
-                  <button
-                    onClick={() =>
-                      setMenuOpenId((cur) => (cur === auto.id ? null : auto.id))
+      {/* Campaign list */}
+      {filtered.length > 0 && (
+        <div>
+          <div className="group">
+            {filtered.map((auto) => {
+              const videoUrl = auto.postId ? videos[auto.postId] : undefined;
+              const thumb = auto.postId ? thumbnails[auto.postId] : undefined;
+              const keywordText = auto.matchAnyWord
+                ? t("Any comment")
+                : auto.keywords.join(", ");
+              const postText = auto.matchAnyPost
+                ? t("Any post or reel")
+                : auto.pendingNextReel
+                  ? null
+                  : t("A specific post or reel");
+              const extras = [
+                auto.requireFollow ? t("Follow gate") : null,
+                auto.trackedLinks.length >= 2 ? t("2 links") : null,
+                accounts.length > 1 ? `@${auto.instagramAccount.username}` : null,
+              ].filter(Boolean) as string[];
+              return (
+                <div
+                  key={auto.id}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={auto.name}
+                  onClick={() => router.push(`/campaigns/${auto.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.target === e.currentTarget) {
+                      router.push(`/campaigns/${auto.id}`);
                     }
-                    aria-label={t("More actions")}
-                    className="px-2 py-1 rounded text-lg leading-none text-muted hover:text-foreground"
-                  >
-                    ⋯
-                  </button>
-                  {menuOpenId === auto.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setMenuOpenId(null)}
-                      />
-                      <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-background">
-                        <button
-                          onClick={() => void duplicateAutomation(auto.id)}
-                          className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"
-                        >
-                          {t("Duplicate")}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setMenuOpenId(null);
-                            void deleteAutomation(auto.id);
+                  }}
+                  className="group-row cursor-pointer gap-3 py-3 pr-3 transition-colors hover:bg-surface-hover sm:gap-4"
+                >
+                  {thumb && (
+                    videoUrl ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPlayingVideo({ url: videoUrl, postUrl: auto.postUrl });
+                        }}
+                        aria-label={t("Play reel preview")}
+                        className="shrink-0 rounded-[8px]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={thumb}
+                          alt={t("Campaign reel")}
+                          className="size-11 rounded-[8px] object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
                           }}
-                          className="block w-full px-3 py-2 text-left text-sm text-error hover:bg-surface-hover"
-                        >
-                          {t("Delete")}
-                        </button>
-                      </div>
-                    </>
+                        />
+                      </button>
+                    ) : (
+                      <a
+                        href={auto.postUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="shrink-0 rounded-[8px]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={thumb}
+                          alt={t("Campaign post")}
+                          className="size-11 rounded-[8px] object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </a>
+                    )
                   )}
+
+                  {/* Name, status, trigger */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-baseline gap-2">
+                      <p className="truncate text-[15px] font-medium leading-5">
+                        {auto.name}
+                      </p>
+                      <span
+                        className={`shrink-0 text-[13px] ${
+                          auto.isActive ? "text-success" : "text-muted"
+                        }`}
+                      >
+                        {auto.isActive ? t("Active") : t("Paused")}
+                      </span>
+                    </div>
+                    <p className="footnote mt-0.5 truncate">
+                      {keywordText}
+                      {postText && <> · {postText}</>}
+                      {auto.pendingNextReel && (
+                        <>
+                          {" · "}
+                          <span className="text-warning">{t("Waiting for next reel")}</span>
+                        </>
+                      )}
+                      {extras.map((extra) => (
+                        <span key={extra}> · {extra}</span>
+                      ))}
+                    </p>
+                    <p className="mt-0.5 hidden truncate text-[13px] leading-[18px] text-tertiary sm:block">
+                      &ldquo;{auto.dmMessage}{t("”")}
+                    </p>
+                    {/* Phones have no room for the number columns. */}
+                    <p className="footnote mt-0.5 truncate md:hidden">
+                      <span className="numeral text-foreground">{auto.analytics.sent}</span>{" "}
+                      {t("sent")} ·{" "}
+                      <span className="numeral text-foreground">{auto.analytics.clicks}</span>{" "}
+                      {t("clicks")}
+                      {copiedId === auto.id && (
+                        <span className="text-accent-text"> · {t("Copied!")}</span>
+                      )}
+                    </p>
+                    {copiedId === auto.id && (
+                      <p className="footnote mt-0.5 hidden text-accent-text md:block">
+                        {t("Copied!")}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Numbers */}
+                  <dl className="hidden shrink-0 items-center md:flex">
+                    <Metric label={t("DMs")} value={auto.analytics.sent} />
+                    <Metric label={t("Clicks")} value={auto.analytics.clicks} />
+                    <Metric label={t("CTR")} value={`${auto.analytics.ctr}%`} />
+                  </dl>
+
+                  {/* Controls */}
+                  <div
+                    className="flex shrink-0 items-center gap-1 sm:gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={auto.isActive}
+                      aria-label={t("Active campaign")}
+                      onClick={() => toggleActive(auto.id, auto.isActive)}
+                      className="switch"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => openMenu(auto.id, e.currentTarget)}
+                      aria-label={t("More actions")}
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpenId === auto.id}
+                      className={`grid size-8 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground ${
+                        menuOpenId === auto.id ? "bg-surface-2 text-foreground" : ""
+                      }`}
+                    >
+                      <Ellipsis aria-hidden strokeWidth={2} className="size-[18px]" />
+                    </button>
+                  </div>
+                  <ChevronRight
+                    aria-hidden
+                    strokeWidth={2}
+                    className="chevron -ml-1 hidden size-4 sm:block"
+                  />
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-          );
-        })}
-      </div>
+          <p className="group-footer">
+            {filtered.length !== automations.length
+              ? t("{count} of {total} campaigns", { count: filtered.length, total: automations.length })
+              : t(automations.length === 1 ? "{count} campaign" : "{count} campaigns", { count: automations.length })}
+          </p>
+        </div>
+      )}
+
+      {/* Row menu */}
+      {menu && menuCampaign && (
+        <RowMenu
+          top={menu.top}
+          right={menu.right}
+          onClose={closeMenu}
+        >
+          {menuCampaign.postUrl && (
+            <MenuItem onSelect={() => void copyReelUrl(menuCampaign)}>
+              {t("Copy URL")}
+            </MenuItem>
+          )}
+          <MenuItem onSelect={() => void duplicateAutomation(menuCampaign.id)}>
+            {t("Duplicate")}
+          </MenuItem>
+          <div role="separator" className="mx-2.5 my-1 border-t-[0.5px] border-border-hover" />
+          <MenuItem
+            destructive
+            onSelect={() => {
+              closeMenu();
+              void deleteAutomation(menuCampaign.id);
+            }}
+          >
+            {t("Delete")}
+          </MenuItem>
+        </RowMenu>
+      )}
 
       {/* Reel lightbox */}
       {playingVideo && (
@@ -585,16 +609,16 @@ export default function CampaignsPage() {
           onClick={() => setPlayingVideo(null)}
         >
           <div
-            className="relative flex max-w-full flex-col items-end gap-2"
+            className="relative flex max-w-full flex-col items-end gap-3"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
               {playingVideo.postUrl && (
                 <a
                   href={playingVideo.postUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-zinc-300 hover:text-white"
+                  className="btn btn-sm bg-white/15 text-white hover:bg-white/25"
                 >
                   {t("Open on Instagram")}
                 </a>
@@ -602,7 +626,7 @@ export default function CampaignsPage() {
               <button
                 type="button"
                 onClick={() => setPlayingVideo(null)}
-                className="text-zinc-300 hover:text-white"
+                className="btn btn-sm bg-white/15 text-white hover:bg-white/25"
               >
                 {t("Close")}
               </button>
@@ -613,11 +637,112 @@ export default function CampaignsPage() {
               autoPlay
               loop
               playsInline
-              className="max-h-[80vh] max-w-full rounded-lg"
+              className="max-h-[80vh] max-w-full rounded-xl"
             />
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="w-[68px] text-right">
+      <dd className="numeral text-[15px] font-semibold leading-5 text-foreground">
+        {value}
+      </dd>
+      <dt className="caption mt-0.5">{label}</dt>
+    </div>
+  );
+}
+
+/**
+ * Translucent action menu anchored under the row's "more" button. Portaled to
+ * <body> and positioned `fixed`, so the grouped list (overflow hidden) never
+ * clips it.
+ */
+function RowMenu({
+  top,
+  right,
+  onClose,
+  children,
+}: {
+  top: number;
+  right: number;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus();
+    const onPointer = (e: PointerEvent) => {
+      const target = e.target as Element;
+      // The anchor button toggles the menu itself on click.
+      if (target.closest?.('[aria-haspopup="menu"][aria-expanded="true"]')) return;
+      if (!ref.current?.contains(target)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+      e.preventDefault();
+      const items = Array.from(
+        ref.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ?? []
+      );
+      const index = items.indexOf(document.activeElement as HTMLButtonElement);
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      items[(index + step + items.length) % items.length]?.focus();
+    };
+    const onDismiss = () => onClose();
+    // Defer so the click that opened the menu does not immediately close it.
+    const timer = window.setTimeout(() => {
+      document.addEventListener("pointerdown", onPointer);
+    }, 0);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onDismiss, true);
+    window.addEventListener("resize", onDismiss);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onDismiss, true);
+      window.removeEventListener("resize", onDismiss);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      ref={ref}
+      role="menu"
+      style={{ top, right }}
+      className="popover fixed z-50 w-48 p-1.5"
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+function MenuItem({
+  onSelect,
+  destructive = false,
+  children,
+}: {
+  onSelect: () => void;
+  destructive?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onSelect}
+      className={`block w-full rounded-[6px] px-2.5 py-1.5 text-left text-[14px] outline-none hover:bg-accent hover:text-on-accent focus-visible:bg-accent focus-visible:text-on-accent ${
+        destructive ? "text-error" : "text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

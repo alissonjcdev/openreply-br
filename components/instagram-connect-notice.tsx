@@ -6,10 +6,11 @@ import { useSearchParams } from "next/navigation";
 
 type Tone = "error" | "warning" | "success";
 
+// Status is carried by the title colour alone; the body stays secondary text.
 const TONE_CLASSES: Record<Tone, string> = {
-  error: "border-error/20 bg-error/10 text-error",
-  warning: "border-warning/20 bg-warning/10 text-warning",
-  success: "border-success/20 bg-success/10 text-success",
+  error: "text-error",
+  warning: "text-warning",
+  success: "text-success",
 };
 
 const MESSAGES: Record<string, { tone: Tone; title: StaticMessageKey; detail: StaticMessageKey }> = {
@@ -63,15 +64,15 @@ export function InstagramConnectNotice() {
         {missing.length > 0 && (
           <ul className="mt-2 space-y-1">
             {missing.map((name) => (
-              <li key={name} className="font-mono text-xs">
+              <li key={name} className="font-mono text-[12px] text-foreground">
                 {name}
               </li>
             ))}
           </ul>
         )}
         <p className="mt-2">
-          {t("See")} <span className="font-mono text-xs">docs/setup.md</span> {t("for how to obtain each value. Note that")}{" "}
-          <span className="font-mono text-xs">ENCRYPTION_KEY</span> {t("must be a 64-character hex string.")}
+          {t("See")} <span className="font-mono text-[12px] text-foreground">docs/setup.md</span> {t("for how to obtain each value. Note that")}{" "}
+          <span className="font-mono text-[12px] text-foreground">ENCRYPTION_KEY</span> {t("must be a 64-character hex string.")}
         </p>
       </Notice>
     );
@@ -86,7 +87,7 @@ export function InstagramConnectNotice() {
           {t("Instagram accepted the login but the connection could not be completed. This is usually a mismatched redirect URI or an app that is missing the required permissions.")}
         </p>
         {reason && (
-          <p className="mt-2 font-mono text-xs break-words opacity-80">
+          <p className="mt-2 font-mono text-[12px] break-words">
             {reason}
           </p>
         )}
@@ -114,9 +115,9 @@ function Notice({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`rounded border p-4 text-sm ${TONE_CLASSES[tone]}`}>
-      <p className="font-semibold">{title}</p>
-      <div className="mt-1 opacity-90">{children}</div>
+    <div role="status" className="rounded-xl bg-surface px-4 py-3.5">
+      <p className={`text-[15px] font-semibold ${TONE_CLASSES[tone]}`}>{title}</p>
+      <div className="mt-1 text-[14px] leading-[20px] text-muted">{children}</div>
     </div>
   );
 }

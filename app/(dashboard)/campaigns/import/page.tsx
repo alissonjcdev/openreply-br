@@ -11,6 +11,8 @@
 import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
 import { parseCsv } from "@/lib/utils/csv";
 import { IMPORT_QUEUE_KEY, IMPORT_ACCOUNT_KEY } from "@/lib/import-queue";
@@ -85,75 +87,95 @@ export default function ImportCampaignsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold">{t("Import campaigns")}</h1>
-        <p className="text-sm text-muted mt-1">
+    <div className="mx-auto max-w-2xl space-y-7">
+      <div className="space-y-3">
+        <Link
+          href="/campaigns"
+          className="-ml-1 inline-flex items-center gap-0.5 text-[15px] text-accent-text hover:opacity-75"
+        >
+          <ChevronLeft aria-hidden strokeWidth={2.2} className="size-[18px]" />
+          {t("Campaigns")}
+        </Link>
+        <h1 className="large-title">{t("Import campaigns")}</h1>
+        <p className="text-[15px] leading-[22px] text-muted">
           {t("Paste a CSV with one row per campaign. Each row opens in the builder prefilled and editable, so you can review it and pick the reel before saving. Required columns are")}{" "}
-          <code className="text-accent">keywords</code> {t("and")}{" "}
-          <code className="text-accent">dm_message</code>{t(". Optional:")}{" "}
-          <code className="text-accent">name</code>,{" "}
-          <code className="text-accent">public_reply</code>,{" "}
-          <code className="text-accent">tracked_url</code>,{" "}
-          <code className="text-accent">opening_dm</code>,{" "}
-          <code className="text-accent">opening_dm_button</code>{t(". Keywords go in one cell, separated by commas. Use")}{" "}
-          <code className="text-accent">{"{link}"}</code> {t("in the message to insert the tracked link.")}
+          <Code>keywords</Code> {t("and")} <Code>dm_message</Code>
+          {t(". Optional:")} <Code>name</Code>, <Code>public_reply</Code>,{" "}
+          <Code>tracked_url</Code>, <Code>opening_dm</Code>,{" "}
+          <Code>opening_dm_button</Code>
+          {t(". Keywords go in one cell, separated by commas. Use")}{" "}
+          <Code>{"{link}"}</Code> {t("in the message to insert the tracked link.")}
         </p>
       </div>
 
       {error && (
-        <div className="p-4 rounded bg-error/10 border border-error/20 text-error text-sm">
+        <p role="alert" className="text-[15px] text-error">
           {error}
-        </div>
+        </p>
       )}
 
       {accounts.length > 1 && (
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground">
-            {t("Instagram account")}
-          </label>
-          <AccountSelect
-            accounts={accounts}
-            value={selectedAccountId}
-            onChange={setSelectedAccountId}
-            includeAll={false}
-            label={t("Account")}
-          />
-        </div>
+        <section>
+          <div className="group overflow-visible">
+            <div className="group-row justify-between">
+              <span className="text-[15px]">{t("Instagram account")}</span>
+              <AccountSelect
+                accounts={accounts}
+                value={selectedAccountId}
+                onChange={setSelectedAccountId}
+                includeAll={false}
+              />
+            </div>
+          </div>
+        </section>
       )}
 
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground">CSV</label>
-        <textarea
-          value={csv}
-          onChange={(e) => setCsv(e.target.value)}
-          placeholder={SAMPLE}
-          rows={10}
-          className="w-full px-4 py-3 rounded bg-surface border border-border text-sm font-mono text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none resize-y"
-        />
+      <section>
+        <div className="flex items-baseline justify-between px-4 pb-1.5">
+          <label htmlFor="import-csv" className="text-[13px] font-semibold text-muted">
+            CSV
+          </label>
+          <button
+            type="button"
+            onClick={() => setCsv(SAMPLE)}
+            className="btn-plain text-[13px]"
+          >
+            {t("Fill with a sample")}
+          </button>
+        </div>
+        <div className="group p-1.5 transition-shadow focus-within:ring-2 focus-within:ring-accent/40">
+          <textarea
+            id="import-csv"
+            value={csv}
+            onChange={(e) => setCsv(e.target.value)}
+            placeholder={SAMPLE}
+            rows={10}
+            spellCheck={false}
+            className="block w-full resize-y rounded-[8px] bg-transparent px-2.5 py-2 font-mono text-[13px] leading-5 text-foreground placeholder:text-tertiary focus:outline-none focus-visible:outline-none"
+          />
+        </div>
+      </section>
+
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button
           type="button"
-          onClick={() => setCsv(SAMPLE)}
-          className="text-xs text-muted hover:text-foreground"
-        >
-          {t("Fill with a sample")}
-        </button>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <button
-          onClick={startImport}
-          className="px-5 py-2 rounded bg-accent text-sm font-medium text-on-accent hover:bg-accent-hover"
-        >
-          {t("Review and import")}
-        </button>
-        <button
           onClick={() => router.push("/campaigns")}
-          className="px-5 py-2 rounded text-sm text-muted hover:text-foreground border border-border"
+          className="btn btn-secondary"
         >
           {t("Cancel")}
         </button>
+        <button type="button" onClick={startImport} className="btn btn-primary">
+          {t("Review and import")}
+        </button>
       </div>
     </div>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="rounded-[5px] bg-surface-2 px-1 py-px font-mono text-[13px] text-foreground">
+      {children}
+    </code>
   );
 }

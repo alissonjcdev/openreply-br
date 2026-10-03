@@ -38,37 +38,32 @@ export default async function InvitePage({ params }: InvitePageProps) {
   const expired = invitation.expiresAt <= new Date();
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center px-5 py-12">
-        <Link href="/" className="mb-8 text-sm font-bold text-accent-text">
+    <main className="flex min-h-[calc(100dvh-3rem)] items-center justify-center bg-background px-6 pb-16 text-foreground">
+      <div className="w-full max-w-[380px] text-center">
+        <Link href="/" className="text-[15px] font-semibold tracking-[-0.02em] text-muted hover:text-foreground">
           OpenReply
         </Link>
-        <section className="border border-border bg-surface p-8">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent-text">
-            {t("Workspace invitation")}
-          </p>
-          <h1 className="mt-4 text-3xl font-black leading-tight text-foreground">
-            {t("Join {workspace}", { workspace: invitation.workspace.name })}
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-muted">
-            {t("You were invited as {role} for {email}.", { role: label(invitation.role), email: invitation.email })}
-          </p>
-          <div className="mt-8">
-            {expired ? (
-              <p className="text-sm text-error">
-                {t("This invitation has expired. Ask the workspace owner to resend it.")}
-              </p>
-            ) : (
-              <InvitationAcceptCard
-                token={token}
-                isSignedIn={Boolean(session?.user?.id)}
-                invitedEmail={invitation.email}
-              />
-            )}
-          </div>
-        </section>
+        <p className="footnote mt-6">{t("Workspace invitation")}</p>
+        <h1 className="large-title mt-1">
+          {t("Join {workspace}", { workspace: invitation.workspace.name })}
+        </h1>
+        <p className="mt-2 text-balance text-[15px] leading-[22px] text-muted">
+          {t("You were invited as {role} for {email}.", { role: label(invitation.role), email: invitation.email })}
+        </p>
+        <div className="mt-8">
+          {expired ? (
+            <p className="text-[15px] text-error">
+              {t("This invitation has expired. Ask the workspace owner to resend it.")}
+            </p>
+          ) : (
+            <InvitationAcceptCard
+              token={token}
+              isSignedIn={Boolean(session?.user?.id)}
+              invitedEmail={invitation.email}
+            />
+          )}
+        </div>
       </div>
     </main>
   );
 }
-
