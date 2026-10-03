@@ -305,7 +305,7 @@ export default function CampaignsPage() {
           </Link>
           <Link
             href="/campaigns/new"
-            className="flex-1 rounded bg-accent px-4 py-2 text-center text-sm font-medium text-white hover:bg-accent-hover sm:flex-none"
+            className="flex-1 rounded bg-accent px-4 py-2 text-center text-sm font-medium text-on-accent hover:bg-accent-hover sm:flex-none"
           >
             {t("New Campaign")}
           </Link>
@@ -319,7 +319,7 @@ export default function CampaignsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("Search campaigns by name, keyword, or message…")}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-zinc-500 focus:border-accent/40 focus:outline-none"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-accent/40 focus:outline-none"
           />
           <div className="inline-flex shrink-0 rounded-lg bg-surface p-1">
             {(["all", "active", "paused"] as const).map((s) => (
@@ -349,7 +349,7 @@ export default function CampaignsPage() {
           </p>
           <Link
             href="/campaigns/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-accent text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-accent text-sm font-semibold text-on-accent hover:bg-accent-hover transition-colors"
           >
             {t("Create Campaign")}
           </Link>
@@ -427,13 +427,13 @@ export default function CampaignsPage() {
                     className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       auto.isActive
                         ? "bg-success/10 text-success"
-                        : "bg-zinc-500/10 text-muted"
+                        : "bg-muted/10 text-muted"
                     }`}
                   >
                     {auto.isActive ? t("Active") : t("Paused")}
                   </span>
                   {auto.pendingNextReel && (
-                    <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    <span className="shrink-0 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
                       {t("Waiting for next reel")}
                     </span>
                   )}
@@ -466,13 +466,13 @@ export default function CampaignsPage() {
 
                 {/* Tracked link sent */}
                 {auto.trackedLinks[0]?.trackedUrl && (
-                  <p className="mt-2 truncate font-mono text-xs text-zinc-500">
+                  <p className="mt-2 truncate font-mono text-xs text-muted">
                     {auto.trackedLinks[0].trackedUrl}
                   </p>
                 )}
 
                 {/* Stats */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-zinc-500">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs text-muted">
                   <span className="font-medium text-foreground">
                     {auto._count.dmLogs} {t("runs")}
                   </span>
@@ -523,12 +523,12 @@ export default function CampaignsPage() {
                   onClick={() => toggleActive(auto.id, auto.isActive)}
                   className={`
                     relative w-11 h-6 rounded-full transition-colors
-                    ${auto.isActive ? "bg-accent" : "bg-zinc-300"}
+                    ${auto.isActive ? "bg-accent" : "bg-border-hover"}
                   `}
                 >
                   <span
                     className={`
-                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm
+                      absolute top-1 w-4 h-4 rounded-full bg-white transition-transform
                       ${auto.isActive ? "left-6" : "left-1"}
                     `}
                   />
@@ -551,7 +551,7 @@ export default function CampaignsPage() {
                         className="fixed inset-0 z-10"
                         onClick={() => setMenuOpenId(null)}
                       />
-                      <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+                      <div className="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-border bg-background">
                         <button
                           onClick={() => void duplicateAutomation(auto.id)}
                           className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface-hover"

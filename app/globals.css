@@ -1,38 +1,121 @@
 @import "tailwindcss";
 
 /* ManyChat Alternative — Design System
-   Plain and functional. No gradients, glass, glow, or animation. */
+   Plain and functional. No gradients, glass, glow, shadows or animation.
+
+   Colors are CSS variables that change per theme. Tailwind utilities
+   (bg-background, text-muted, border-border, ...) point at them through
+   @theme inline, so every utility follows the active theme.
+
+   Theme resolution:
+   - html without data-theme  -> follows the OS (prefers-color-scheme)
+   - html[data-theme="light"] -> light
+   - html[data-theme="dark"]  -> dark
+   Any element can carry data-theme to pin its subtree to one palette. */
 
 @theme inline {
-  --color-background: #ffffff;
-  --color-foreground: #18181b;
-  --color-surface: #f7f7f8;
-  --color-surface-hover: #efeff1;
-  --color-border: #e4e4e7;
-  --color-border-hover: #d4d4d8;
-  --color-muted: #71717a;
-  --color-accent: #f97316;
-  --color-accent-hover: #ea580c;
-  --color-success: #16a34a;
-  --color-error: #dc2626;
-  --color-warning: #d97706;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-overlay: var(--overlay);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, monospace;
 }
 
-html {
+/* Light (default). Also re-applied on any subtree pinned to light, and on
+   branded blocks that carry their own light palette. */
+:root,
+[data-theme="light"],
+.zernio-sponsor,
+.or-landing {
   color-scheme: light;
+  --background: #ffffff;
+  --foreground: #18181b;
+  --surface: #f7f7f8;
+  --surface-hover: #efeff1;
+  --surface-2: #f1f1f3;
+  --border: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --muted: #71717a;
+  --accent: #f97316;
+  --accent-hover: #ea580c;
+  --accent-text: #c2410c;
+  --accent-soft: #fff4eb;
+  --on-accent: #ffffff;
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #d97706;
+  --overlay: rgb(24 24 27 / 0.5);
+}
+
+/* Dark, following the OS when the user has not picked a theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #141416;
+    --foreground: #e7e7ea;
+    --surface: #1c1c1f;
+    --surface-hover: #26262a;
+    --surface-2: #232327;
+    --border: #2e2e33;
+    --border-hover: #3f3f46;
+    --muted: #a1a1aa;
+    --accent: #f97316;
+    --accent-hover: #fb923c;
+    --accent-text: #fb923c;
+    --accent-soft: #2a1c12;
+    --on-accent: #18181b;
+    --success: #4ade80;
+    --error: #f87171;
+    --warning: #fbbf24;
+    --overlay: rgb(0 0 0 / 0.6);
+  }
+}
+
+/* Dark, picked explicitly (or pinned on a subtree). Same values as above. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #141416;
+  --foreground: #e7e7ea;
+  --surface: #1c1c1f;
+  --surface-hover: #26262a;
+  --surface-2: #232327;
+  --border: #2e2e33;
+  --border-hover: #3f3f46;
+  --muted: #a1a1aa;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --accent-text: #fb923c;
+  --accent-soft: #2a1c12;
+  --on-accent: #18181b;
+  --success: #4ade80;
+  --error: #f87171;
+  --warning: #fbbf24;
+  --overlay: rgb(0 0 0 / 0.6);
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
 }
 
 /* Focus ring — visible, for keyboard users. */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -57,16 +140,16 @@ select:focus-visible {
 
 /* Panel — flat container. Replaces .glass / .glass-strong. */
 .panel {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 /* Kept as no-op aliases so existing markup degrades to plain surfaces
    instead of breaking. Prefer .panel in new code. */
 .glass,
 .glass-strong {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .gradient-mesh {

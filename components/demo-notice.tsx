@@ -65,14 +65,14 @@ export function DemoNotice({ variant }: { variant: "banner" | "panel" }) {
 
   if (variant === "banner") {
     return (
-      <div className="relative border-b border-orange-200 bg-orange-50">
-        <p className="mx-auto w-full max-w-6xl px-10 py-2 text-center text-xs leading-5 text-zinc-700 sm:px-14 sm:text-sm">
-          <span className="font-bold text-zinc-900">{DEMO_HOST}</span> {t("is a demo. OpenReply is self-hosted — signing in here will not send DMs for your account.")}{" "}
+      <div className="relative border-b border-accent/30 bg-accent-soft">
+        <p className="mx-auto w-full max-w-6xl px-10 py-2 text-center text-xs leading-5 text-foreground sm:px-14 sm:text-sm">
+          <span className="font-bold text-foreground">{DEMO_HOST}</span> {t("is a demo. OpenReply is self-hosted — signing in here will not send DMs for your account.")}{" "}
           <a
             href={SETUP_DOCS_URL}
             target="_blank"
             rel="noreferrer"
-            className="font-bold text-orange-700 underline underline-offset-2 transition hover:text-orange-800"
+            className="font-bold text-accent-text underline underline-offset-2 transition hover:text-foreground"
           >
             {t("Deploy your own copy")}
           </a>
@@ -82,7 +82,7 @@ export function DemoNotice({ variant }: { variant: "banner" | "panel" }) {
           type="button"
           onClick={dismiss}
           aria-label={t("Dismiss demo notice")}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-zinc-500 transition hover:text-zinc-900 sm:right-4"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-muted transition hover:text-foreground sm:right-4"
         >
           <DismissIcon />
         </button>

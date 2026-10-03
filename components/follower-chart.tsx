@@ -31,11 +31,14 @@ export interface FollowerChartPoint {
   delta: number | null;
 }
 
-// Colors read against the light chart surface (#ffffff): the accent line clears
-// 3:1 contrast and grid/axis text match the muted/border tokens. See globals.css.
-const SERIES_COLOR = "#f97316";
-const GRID_COLOR = "#e4e4e7";
-const AXIS_TEXT = "#71717a";
+// Theme tokens from globals.css, so the chart follows light/dark. Recharts
+// passes these through as SVG presentation attributes, where var() resolves.
+// The accent line clears 3:1 on both chart surfaces; grid/axis text match the
+// border/muted tokens.
+const SERIES_COLOR = "var(--accent)";
+const GRID_COLOR = "var(--border)";
+const AXIS_TEXT = "var(--muted)";
+const SURFACE_COLOR = "var(--surface)";
 
 function formatCompact(n: number, locale: Locale): string {
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -67,7 +70,7 @@ function ChartTooltip({
   const point = payload[0].payload;
 
   return (
-    <div className="rounded border border-border bg-surface px-3 py-2 text-xs shadow-lg">
+    <div className="rounded border border-border bg-background px-3 py-2 text-xs">
       <p className="text-muted">{formatDay(point.date, locale)}</p>
       <p className="mt-1 font-semibold text-foreground">
         {point.followers.toLocaleString(locale)} {t("followers")}
@@ -145,7 +148,7 @@ export default function FollowerChart({
         <div className="mt-4 max-h-72 overflow-y-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-zinc-500">
+              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                 <th className="py-2 pr-4 font-medium">{t("Date")}</th>
                 <th className="py-2 px-3 font-medium text-right">{t("Followers")}</th>
                 <th className="py-2 pl-3 font-medium text-right">{t("Change")}</th>
@@ -208,7 +211,7 @@ export default function FollowerChart({
                 stroke={SERIES_COLOR}
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, fill: SERIES_COLOR, stroke: "#ffffff", strokeWidth: 2 }}
+                activeDot={{ r: 4, fill: SERIES_COLOR, stroke: SURFACE_COLOR, strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             </LineChart>

@@ -55,7 +55,7 @@ export default async function TemplateDetailPage({ params }: TemplatePageProps) 
   ).slice(0, 3);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main data-theme="dark" className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader active="templates" />
 
       <section className="border-b border-white/10 bg-zinc-950/55">

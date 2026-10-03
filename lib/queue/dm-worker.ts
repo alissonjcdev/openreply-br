@@ -152,7 +152,7 @@ function buildLinkButtons(
   return trackedLinks.slice(0, 3).map((link, index) => ({
     url: buildTrackedUrl(link.slug),
     title:
-      (index === 0 ? primaryLabel : link.label) || link.label || "Open link",
+      (index === 0 ? primaryLabel : link.label) || link.label || "Abrir link",
   }));
 }
 
@@ -220,7 +220,7 @@ async function sendRevealDirectMessage({
     renderMessageWithoutLink({
       message: automation.dmMessage,
       commenterName,
-    }) || "Here's your link:";
+    }) || "Aqui está o seu link:";
   const buttons = buildLinkButtons(
     automation.trackedLinks,
     automation.linkButtonLabel
@@ -682,7 +682,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           instagramAccountId: automation.instagramAccount.instagramId,
           commentId: commentId,
           text: promptText,
-          buttonTitle: automation.followPromptButtonLabel || "i'm following",
+          buttonTitle: automation.followPromptButtonLabel || "Já estou seguindo",
           payload: `followcheck:${automation.id}`,
           postId: mediaId,
         });
@@ -692,7 +692,7 @@ async function processComment(job: Job<ProcessCommentJob>): Promise<void> {
           renderMessageWithoutLink({
             message: automation.dmMessage,
             commenterName,
-          }) || "Here's your link:";
+          }) || "Aqui está o seu link:";
         const buttons = buildLinkButtons(
           automation.trackedLinks,
           automation.linkButtonLabel
@@ -1057,7 +1057,7 @@ async function processPostback(job: Job<ProcessPostbackJob>): Promise<void> {
               userId: userId,
               text: promptText,
               buttonTitle:
-                automation.followPromptButtonLabel || "i'm following",
+                automation.followPromptButtonLabel || "Já estou seguindo",
               payload: `followcheck:${automation.id}`,
             }),
         });

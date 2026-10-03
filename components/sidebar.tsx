@@ -7,6 +7,7 @@
  */
 
 import LanguageSwitcher from "@/components/language-switcher";
+import ThemeToggle from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/provider";
 import Link from "next/link";
 import Image from "next/image";
@@ -42,7 +43,7 @@ export default function Sidebar({
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-40 bg-overlay lg:hidden"
           onClick={onClose}
         />
       )}
@@ -93,6 +94,7 @@ export default function Sidebar({
 
         <div className="px-5 py-4 border-t border-border">
           <div className="mb-4"><LanguageSwitcher /></div>
+          <div className="mb-4"><ThemeToggle /></div>
           <p className="text-sm text-foreground truncate">{workspaceName}</p>
           <p className="text-xs text-muted">{t("Self-hosted")}</p>
           <a

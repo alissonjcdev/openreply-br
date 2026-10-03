@@ -1,15 +1,26 @@
+import ptBR from "./pt-BR.json";
 import zhTW from "./zh-TW.json";
 
 export const LOCALE_COOKIE = "openreply-locale";
-export type Locale = "en" | "zh-TW";
+export const LOCALES = ["pt-BR", "en", "zh-TW"] as const;
+export type Locale = (typeof LOCALES)[number];
+export const DEFAULT_LOCALE: Locale = "pt-BR";
 export type MessageKey = keyof typeof zhTW;
 
+// English is the source language: its "catalog" is the key itself. Every other
+// catalog must contain exactly the same keys: the type below rejects a missing
+// key and the catalog tests reject extra ones.
+const catalogs: Record<Exclude<Locale, "en">, Record<MessageKey, string>> = {
+  "pt-BR": ptBR,
+  "zh-TW": zhTW,
+};
+
 export function isLocale(value: unknown): value is Locale {
-  return value === "en" || value === "zh-TW";
+  return (LOCALES as readonly unknown[]).includes(value);
 }
 
 export function resolveLocale(value: unknown): Locale {
-  return isLocale(value) ? value : "en";
+  return isLocale(value) ? value : DEFAULT_LOCALE;
 }
 
 type Placeholders<S extends string> =
@@ -53,7 +64,7 @@ const labels: Record<string, StaticMessageKey> = {
 
 export function createI18n(locale: Locale) {
   function t<K extends MessageKey>(key: K, ...args: MessageArgs<K>): string {
-    const message = locale === "zh-TW" ? zhTW[key] : key;
+    const message = locale === "en" ? key : catalogs[locale][key];
     const values = args[0] as Record<string, string | number> | undefined;
     return message.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
       values?.[name] === undefined ? placeholder : String(values[name]),

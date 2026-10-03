@@ -29,7 +29,7 @@ export interface SeoPageConfig {
 
 export default function SeoPageShell({ config }: { config: SeoPageConfig }) {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main data-theme="dark" className="min-h-screen bg-background text-foreground">
       <PublicSiteHeader />
 
       <section className="border-b border-white/10 bg-zinc-950/70">

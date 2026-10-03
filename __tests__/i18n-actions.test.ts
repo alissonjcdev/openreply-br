@@ -19,9 +19,16 @@ describe("language preference", () => {
     expect(t("Settings")).toBe("設定");
   });
 
-  it("falls back to English for an invalid cookie", async () => {
+  it("falls back to Brazilian Portuguese for an invalid cookie", async () => {
     store.get.mockReturnValue({ value: "unsupported" });
-    expect((await getI18n()).locale).toBe("en");
+    expect((await getI18n()).locale).toBe("pt-BR");
+  });
+
+  it("renders Brazilian Portuguese when no language was chosen", async () => {
+    store.get.mockReturnValue(undefined);
+    const { locale, t } = await getI18n();
+    expect(locale).toBe("pt-BR");
+    expect(t("Settings")).toBe("Configurações");
   });
 
   it("persists only the language cookie, across routes and browser restarts", async () => {
@@ -43,6 +50,15 @@ describe("language preference", () => {
       LOCALE_COOKIE,
       "en",
       expect.objectContaining({ secure: false }),
+    );
+  });
+
+  it("accepts Brazilian Portuguese as a saved choice", async () => {
+    await setLocale("pt-BR");
+    expect(store.set).toHaveBeenCalledWith(
+      LOCALE_COOKIE,
+      "pt-BR",
+      expect.objectContaining({ httpOnly: true }),
     );
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import LanguageSwitcher from "@/components/language-switcher";
+import ThemeToggle from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/provider";
 import { Suspense, useEffect, useState } from "react";
 import type { AccountOption } from "@/components/account-select";
@@ -145,6 +146,9 @@ export default function SettingsPage() {
         <h2 className="text-base font-semibold">{t("Interface language")}</h2>
         <LanguageSwitcher />
         <p className="text-sm text-muted">{t("Saved in this browser. Campaign messages stay unchanged.")}</p>
+        <div className="max-w-xs border-t border-border pt-4">
+          <ThemeToggle />
+        </div>
       </section>
 
       <ZernioConnection canManage={canManageMembers} />
@@ -223,7 +227,7 @@ export default function SettingsPage() {
         <div className="mt-6 pt-4 border-t border-border flex gap-3">
           <a
             href="/api/instagram/connect"
-            className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-white hover:bg-accent-hover"
+            className="px-4 py-2 rounded text-sm font-medium transition-colors bg-accent text-on-accent hover:bg-accent-hover"
           >
             {t("Connect using your own Meta app")}
           </a>
@@ -253,7 +257,7 @@ export default function SettingsPage() {
 
         {membersData?.invitations.length ? (
           <div className="mt-6 border-t border-border pt-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
               {t("Pending invites")}
             </p>
             <div className="space-y-3">
@@ -321,7 +325,7 @@ export default function SettingsPage() {
             <button
               type="submit"
               disabled={busy === "invite"}
-              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="rounded bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               {busy === "invite" ? t("Inviting...") : t("Invite")}
             </button>

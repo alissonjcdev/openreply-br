@@ -5,6 +5,8 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/db/client";
 import { ensureWorkspaceForUser, getPrimaryWorkspace } from "@/lib/workspace";
 import { isEmailAllowedToSignIn } from "@/lib/env";
+import { sendMagicLinkViaResend, sendMagicLinkViaSmtp } from "@/lib/auth-email";
+import { getApiTokenUserId } from "@/lib/api-token";
 
 type AdapterPrismaClient = Parameters<typeof PrismaAdapter>[0];
 
@@ -24,10 +26,15 @@ export const authConfig = {
   adapter: PrismaAdapter(prisma as unknown as AdapterPrismaClient),
   providers: [
     smtpServer
-      ? Nodemailer({ server: smtpServer, from: emailFrom })
+      ? Nodemailer({
+          server: smtpServer,
+          from: emailFrom,
+          sendVerificationRequest: sendMagicLinkViaSmtp,
+        })
       : Resend({
           apiKey: process.env.RESEND_API_KEY ?? "missing-resend-api-key",
           from: emailFrom,
+          sendVerificationRequest: sendMagicLinkViaResend,
         }),
   ],
   callbacks: {
@@ -65,7 +72,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
 
 export async function getCurrentUserId(): Promise<string | null> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  // No session: accept the MCP's Bearer token (see lib/api-token.ts).
+  return session?.user?.id ?? (await getApiTokenUserId());
 }
 
 export async function getCurrentWorkspaceId(): Promise<string | null> {
