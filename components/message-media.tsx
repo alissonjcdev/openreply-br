@@ -56,6 +56,14 @@ function VisualMedia({ url, poster }: { url: string; poster?: string }) {
   );
 }
 
+function linkDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 // Cover of a shared post; hidden (not a broken image) once the link expires.
 function SharePreviewImage({ url }: { url: string }) {
   const [failed, setFailed] = useState(false);
@@ -68,7 +76,7 @@ function SharePreviewImage({ url }: { url: string }) {
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className="aspect-[4/5] w-full object-cover"
+      className="block h-auto max-h-80 w-full object-cover"
     />
   );
 }
@@ -142,10 +150,10 @@ export default function MessageMedia({
               <Clapperboard aria-hidden strokeWidth={1.8} className="size-5 shrink-0 text-accent" />
             )}
             <span className="min-w-0">
-              <span className="block truncate text-[14px] font-semibold leading-[18px]">
+              <span className="line-clamp-2 block text-[14px] font-semibold leading-[18px]">
                 {media.name || t("Shared post")}
               </span>
-              <span className="block text-[12px] leading-[16px] text-muted">instagram.com</span>
+              <span className="block text-[12px] leading-[16px] text-muted">{linkDomain(media.url)}</span>
             </span>
           </span>
         </a>
