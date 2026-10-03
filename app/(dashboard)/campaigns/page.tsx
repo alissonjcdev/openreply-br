@@ -9,6 +9,7 @@
  * switch and a "more" menu.
  */
 
+import { formatPercent } from "@/lib/utils/format";
 import { useI18n } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -69,7 +70,7 @@ interface Campaign {
 }
 
 export default function CampaignsPage() {
-  const { t, label } = useI18n();
+  const { t, label, locale } = useI18n();
   const router = useRouter();
   const [automations, setAutomations] = useState<Campaign[]>([]);
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
@@ -527,7 +528,7 @@ export default function CampaignsPage() {
                   <dl className="hidden shrink-0 items-center md:flex">
                     <Metric label={t("DMs")} value={auto.analytics.sent} />
                     <Metric label={t("Clicks")} value={auto.analytics.clicks} />
-                    <Metric label={t("CTR")} value={`${auto.analytics.ctr}%`} />
+                    <Metric label={t("CTR")} value={formatPercent(auto.analytics.ctr, locale)} />
                   </dl>
 
                   {/* Controls */}

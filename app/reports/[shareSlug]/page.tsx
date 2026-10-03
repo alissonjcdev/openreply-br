@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { formatPercent } from "@/lib/utils/format";
 import type { I18n } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import Link from "next/link";
@@ -147,7 +148,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
           />
           <MetricCard
             label={t("CTR")}
-            value={`${report.metrics.ctr}%`}
+            value={formatPercent(report.metrics.ctr, locale)}
             helper={t("Clicks divided by sent replies.")}
           />
         </div>

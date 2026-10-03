@@ -12,6 +12,7 @@
  * already running then.
  */
 
+import { formatCompact as formatCompactNumber } from "@/lib/utils/format";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/provider";
 import { useState } from "react";
@@ -44,8 +45,7 @@ const AXIS_TEXT = "var(--tertiary)";
 const SURFACE_COLOR = "var(--surface)";
 
 function formatCompact(n: number, locale: Locale): string {
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(n) >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (Math.abs(n) >= 1_000) return formatCompactNumber(n, locale);
   return n.toLocaleString(locale);
 }
 

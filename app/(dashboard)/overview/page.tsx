@@ -8,6 +8,7 @@
  * the insights permission); likes and comments are always available.
  */
 
+import { formatCompact as formatCompactNumber } from "@/lib/utils/format";
 import type { Locale } from "@/lib/i18n";
 import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
@@ -18,8 +19,7 @@ import type { OverviewResponse } from "@/app/api/instagram/overview/route";
 
 function formatNumber(n: number | null, locale: Locale): string {
   if (n === null) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1_000) return formatCompactNumber(n, locale);
   return n.toLocaleString(locale);
 }
 

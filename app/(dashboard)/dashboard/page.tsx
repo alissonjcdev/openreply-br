@@ -8,6 +8,7 @@
  * and top keywords / recent activity as grouped lists.
  */
 
+import { formatPercent } from "@/lib/utils/format";
 import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import AccountSelect, { type AccountOption } from "@/components/account-select";
@@ -139,7 +140,7 @@ export default function DashboardPage() {
   const secondaryMetrics: Array<{ label: string; value: string | number; tone?: string }> = [
     { label: t("Active Campaigns"), value: stats?.activeAutomations ?? 0 },
     { label: t("Clicks"), value: (stats?.clicksThisMonth ?? 0).toLocaleString(locale) },
-    { label: t("CTR"), value: `${stats?.ctrThisMonth ?? 0}%` },
+    { label: t("CTR"), value: formatPercent(stats?.ctrThisMonth ?? 0, locale) },
     { label: t("Skipped"), value: (stats?.dmsSkippedMonth ?? 0).toLocaleString(locale) },
     {
       label: t("Failed"),

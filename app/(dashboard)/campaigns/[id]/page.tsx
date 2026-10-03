@@ -9,6 +9,7 @@
  * Duplicate and Delete are capsule buttons; active/paused is a switch.
  */
 
+import { formatPercent } from "@/lib/utils/format";
 import { useI18n } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -58,7 +59,7 @@ interface Campaign {
 }
 
 export default function CampaignDetailPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
 
@@ -205,7 +206,7 @@ export default function CampaignDetailPage() {
   const metrics = [
     { label: t("Sends"), value: campaign.analytics.sent },
     { label: t("Clicks"), value: campaign.analytics.clicks },
-    { label: t("CTR"), value: `${campaign.analytics.ctr}%` },
+    { label: t("CTR"), value: formatPercent(campaign.analytics.ctr, locale) },
     { label: t("Failed"), value: campaign.analytics.failed },
   ];
   // Hairlines between the metric cells: one row of four from sm up, a 2x2
