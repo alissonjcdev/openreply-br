@@ -10,6 +10,17 @@ Open-sourced ManyChat for Instagram comment-to-DM automation.
 
 </div>
 
+<!-- fork-ptbr -->
+> **Esta é uma versão (fork) em português, mantida por [Alisson Chaves](https://alissondsgn.com.br).** O que muda em relação ao original:
+>
+> - **Painel em português** como idioma padrão, com e-mail de acesso e textos das DMs em português.
+> - **Redesign** no estilo dos apps da Apple, com modo claro e escuro.
+> - **Conector pro Claude (MCP)** na pasta [`mcp/`](mcp/README.md): crie e gerencie campanhas pedindo numa conversa.
+> - **Caixa de entrada** com foto de perfil, prévia de fotos, vídeos, áudios, respostas a story e links compartilhados.
+> - **Deploy com Docker Compose** pronto pra Coolify (`docker-compose.coolify.yml`).
+>
+> O crédito do projeto é do autor original, Diwen Huang ([diwenne/openreply](https://github.com/diwenne/openreply)), sob licença MIT.
+
 Someone comments `LINK` on your reel, and OpenReply queues a DM with your link. That is the whole idea. OpenReply watches the comments on your Instagram posts, and when a comment matches a keyword you set, it sends that person a private reply through the official Meta API. You can also post a public reply under the comment at the same time.
 
 OpenReply is free, MIT-licensed software running on your own infrastructure, with no software seat limits or plan caps. Hosting and optional provider costs are separate.
