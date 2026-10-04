@@ -17,6 +17,7 @@ Open-sourced ManyChat for Instagram comment-to-DM automation.
 > - **Redesign** no estilo dos apps da Apple, com modo claro e escuro.
 > - **Conector pro Claude (MCP)** na pasta [`mcp/`](mcp/README.md): crie e gerencie campanhas pedindo numa conversa.
 > - **Caixa de entrada** com foto de perfil, prévia de fotos, vídeos, áudios, respostas a story e links compartilhados.
+> - **Publicações agendadas**: publique ou agende foto, carrossel (até 10) e reel pelo painel ou pelo Claude. O servidor publica na hora marcada, tenta de novo se a Meta falhar e liga a campanha de comentário assim que o post sai. Precisa da permissão `instagram_business_content_publish` (veja [docs/publications.md](docs/publications.md)).
 > - **Deploy com Docker Compose** pronto pra Coolify (`docker-compose.coolify.yml`).
 >
 > O crédito do projeto é do autor original, Diwen Huang ([diwenne/openreply](https://github.com/diwenne/openreply)), sob licença MIT.
@@ -57,6 +58,7 @@ OpenReply is built around Meta's official Instagram private replies. It does not
 - English and Traditional Chinese interface, with a saved language preference. See [interface languages](docs/localization.md).
 - Inbox. Read your Instagram DM conversations and reply from the dashboard, inside Meta's 24-hour messaging window. Cached so it loads instantly on repeat visits.
 - DM logs. Every send, skip, and failure is logged with a reason.
+- Scheduled publishing (fork). Publish or schedule photos, carousels and reels from the dashboard or the MCP; a campaign can switch on for the post the moment it goes live. See [docs/publications.md](docs/publications.md).
 - Self-comment filtering. Your own comments never trigger a reply, since Meta rejects DMing yourself anyway.
 
 ## How it works
