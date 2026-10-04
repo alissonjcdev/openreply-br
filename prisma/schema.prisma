@@ -144,6 +144,7 @@ model InstagramAccount {
   dmLogs      DmLog[]
   linkClicks  LinkClick[]
   followerSnapshots FollowerSnapshot[]
+  publications      Publication[]
 
   @@index([workspaceId])
 }
@@ -415,4 +416,73 @@ model ZernioConnection {
 model PostbackDelivery {
   id String @id
   createdAt DateTime @default(now())
+}
+
+/// Post do feed criado pelo painel: publicado na hora ou agendado.
+/// Ciclo: SCHEDULED → PROCESSING (contêiner criado na Meta) → PUBLISHED,
+/// ou FAILED depois de esgotar as tentativas. O cron publish-due avança o ciclo.
+model Publication {
+  id                 String            @id @default(cuid())
+  workspaceId        String
+  instagramAccountId String
+  mediaType          PublicationType
+  caption            String            @default("")
+  scheduledAt        DateTime
+  status             PublicationStatus @default(SCHEDULED)
+  attempts           Int               @default(0)
+  lastError          String?
+  /// Contêiner pai na Meta (carrossel/reel) enquanto processa.
+  containerId        String?
+  igMediaId          String?
+  permalink          String?
+  publishedAt        DateTime?
+  /// Campanha que passa a valer para este post quando ele sai.
+  automationId       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  instagramAccount InstagramAccount   @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
+  media            PublicationMedia[]
+
+  @@index([workspaceId, scheduledAt])
+  @@index([status, scheduledAt])
+}
+
+/// Arquivo de uma publicação. Enviado pelo painel (guardado no volume e servido
+/// em /api/media/{id}) ou apontando para uma URL pública externa.
+model PublicationMedia {
+  id            String           @id @default(cuid())
+  publicationId String?
+  workspaceId   String
+  position      Int              @default(0)
+  kind          MediaKind
+  contentType   String
+  size          Int              @default(0)
+  storageKey    String?
+  externalUrl   String?
+  createdAt     DateTime         @default(now())
+
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId, position])
+  @@index([workspaceId])
+}
+
+enum PublicationType {
+  IMAGE
+  CAROUSEL
+  REEL
+}
+
+enum PublicationStatus {
+  SCHEDULED
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
 }

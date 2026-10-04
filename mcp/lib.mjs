@@ -82,3 +82,26 @@ export async function api(method, path, { query, body, auth = true } = {}) {
   }
   return { ok, status: res.status, data };
 }
+
+// Envia arquivos locais (multipart) para uma rota do OpenReply.
+export async function apiUpload(path, filePaths) {
+  if (!BASE_URL) throw new Error("Defina OPENREPLY_URL com o endereço do seu OpenReply (ex.: https://reply.seudominio.com).");
+  const { readFile } = await import("node:fs/promises");
+  const { basename, extname } = await import("node:path");
+  const tipos = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".mp4": "video/mp4", ".mov": "video/quicktime" };
+  const form = new FormData();
+  for (const p of filePaths) {
+    const tipo = tipos[extname(p).toLowerCase()];
+    if (!tipo) throw new Error(`${p}: use JPEG, PNG, MP4 ou MOV.`);
+    form.append("file", new Blob([await readFile(p)], { type: tipo }), basename(p));
+  }
+  const res = await fetch(new URL(BASE_URL + path), { method: "POST", redirect: "manual", headers: { accept: "application/json", ...authHeaders() }, body: form });
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text.slice(0, 2000);
+  }
+  return { ok: res.ok, status: res.status, data };
+}

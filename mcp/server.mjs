@@ -3,7 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { api, BASE_URL } from "./lib.mjs";
+import { api, apiUpload, BASE_URL } from "./lib.mjs";
 
 const server = new McpServer({ name: "openreply", version: "0.2.0" });
 
@@ -181,6 +181,77 @@ server.registerTool(
     inputSchema: { instagramAccountId: accountArg },
   },
   safe(async ({ instagramAccountId }) => api("GET", "/api/dashboard/stats", { query: { instagramAccountId } }))
+);
+
+// ---------- Publicações (posts do feed, na hora ou agendados) ----------
+
+server.registerTool(
+  "openreply_publications",
+  {
+    description: "Lista as publicações (agendadas, publicando, publicadas, com erro, canceladas) com horário, legenda, mídia e link do post.",
+    inputSchema: {
+      status: z.enum(["all", "SCHEDULED", "PROCESSING", "PUBLISHED", "FAILED", "CANCELED"]).optional(),
+      instagramAccountId: accountArg,
+    },
+  },
+  safe(async ({ status, instagramAccountId }) => api("GET", "/api/publications", { query: { status, instagramAccountId } }))
+);
+
+server.registerTool(
+  "openreply_publication_create",
+  {
+    description:
+      "Publica ou agenda um post: foto (1 imagem), carrossel (2 a 10) ou reel (1 vídeo). Mídia por arquivo local (files) ou URL pública (urls). Sem scheduledAt = publica agora. Altera a conta real: confirme legenda, mídia e horário com o usuário antes.",
+    inputSchema: {
+      files: z.array(z.string()).max(10).optional().describe("Caminhos absolutos de JPEG/PNG/MP4/MOV, na ordem do carrossel"),
+      urls: z.array(z.object({ url: z.string().url(), kind: z.enum(["IMAGE", "VIDEO"]) })).max(10).optional(),
+      caption: z.string().max(2200).default(""),
+      scheduledAt: z.string().optional().describe("ISO 8601 com fuso, ex.: 2026-10-04T16:00:00-03:00. Omitido = agora."),
+      mediaType: z.enum(["IMAGE", "CAROUSEL", "REEL"]).optional(),
+      automationId: z.string().optional().describe("Campanha que liga neste post quando ele sair (ver openreply_campaigns)"),
+      instagramAccountId: accountArg,
+    },
+  },
+  safe(async ({ files, urls, caption, scheduledAt, mediaType, automationId, instagramAccountId }) => {
+    if (!files?.length && !urls?.length) return { ok: false, error: "Envie files ou urls." };
+    const up = files?.length ? await apiUpload("/api/publications/media", files) : await api("POST", "/api/publications/media", { body: { urls } });
+    if (!up.ok) return up;
+    return api("POST", "/api/publications", {
+      body: { caption, scheduledAt: scheduledAt ?? null, mediaType, automationId, instagramAccountId, mediaIds: up.data.data.map((m) => m.id) },
+    });
+  })
+);
+
+server.registerTool(
+  "openreply_publication_update",
+  {
+    description: "Muda legenda, horário ou campanha de uma publicação ainda não publicada. Uma que falhou volta para a fila.",
+    inputSchema: {
+      id: z.string(),
+      caption: z.string().max(2200).optional(),
+      scheduledAt: z.string().optional().describe("ISO 8601 com fuso"),
+      automationId: z.string().nullable().optional(),
+    },
+  },
+  safe(async ({ id, ...body }) => api("PATCH", `/api/publications/${id}`, { body }))
+);
+
+server.registerTool(
+  "openreply_publication_publish_now",
+  {
+    description: "Publica agora uma publicação agendada (ou tenta de novo uma que falhou). Altera a conta real.",
+    inputSchema: { id: z.string() },
+  },
+  safe(async ({ id }) => api("POST", `/api/publications/${id}/publish`))
+);
+
+server.registerTool(
+  "openreply_publication_cancel",
+  {
+    description: "Cancela uma publicação que ainda não saiu (não apaga posts já publicados).",
+    inputSchema: { id: z.string() },
+  },
+  safe(async ({ id }) => api("DELETE", `/api/publications/${id}`))
 );
 
 // ---------- Livre ----------

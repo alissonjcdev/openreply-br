@@ -23,11 +23,15 @@ x-app-env: &app-env
   # Token do MCP: só o SHA-256 fica no servidor (ver lib/api-token.ts).
   OPENREPLY_API_TOKEN_SHA256: ${OPENREPLY_API_TOKEN_SHA256:-}
   OPENREPLY_API_USER_EMAIL: ${OPENREPLY_API_USER_EMAIL:-}
+  MEDIA_DIR: /data/media
 
 services:
   web:
     build: .
     restart: unless-stopped
+    # Mídia das publicações (servida em /api/media para a Meta baixar).
+    volumes:
+      - openreply-media:/data/media
     # Migração na subida: no build o banco não está na rede.
     command: ["sh", "-c", "npx prisma migrate deploy && npm run start"]
     expose:
@@ -97,3 +101,4 @@ services:
 volumes:
   openreply-pg:
   openreply-redis:
+  openreply-media:

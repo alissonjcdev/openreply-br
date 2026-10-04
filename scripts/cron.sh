@@ -39,6 +39,7 @@ echo "[cron] scheduler started, target $BASE_URL"
 
 last_slot=""
 last_daily=""
+last_minute=""
 
 while true; do
   now=$(date -u '+%Y-%m-%d %H:%M')
@@ -46,6 +47,12 @@ while true; do
   hhmm=${now#* }
   hour=${hhmm%:*}
   minute=${hhmm#*:}
+
+  # Publicações agendadas: toda virada de minuto, para sair na hora marcada.
+  if [ "$last_minute" != "$hhmm" ]; then
+    last_minute="$hhmm"
+    call publish-due
+  fi
 
   # attach-next-reel every 5 minutes rather than once a day: a campaign created
   # before its reel is published stays inert until this binds it, and a daily

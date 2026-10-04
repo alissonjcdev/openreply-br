@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
+  CalendarClock,
   Inbox,
   LayoutGrid,
   Megaphone,
@@ -22,11 +23,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const navItems: { label: "Dashboard" | "Overview" | "Inbox" | "Campaigns" | "DM Logs" | "Settings" | "Diagnostics"; href: string; icon: LucideIcon }[] = [
+const navItems: { label: "Dashboard" | "Overview" | "Inbox" | "Campaigns" | "Publications" | "DM Logs" | "Settings" | "Diagnostics"; href: string; icon: LucideIcon }[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutGrid },
   { label: "Overview", href: "/overview", icon: BarChart3 },
   { label: "Inbox", href: "/inbox", icon: Inbox },
   { label: "Campaigns", href: "/campaigns", icon: Megaphone },
+  { label: "Publications", href: "/publications", icon: CalendarClock },
   { label: "DM Logs", href: "/logs", icon: ScrollText },
 ];
 
