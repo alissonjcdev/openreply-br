@@ -348,7 +348,7 @@ export default function CampaignDetailPage() {
             <Section title={t("They must follow first")}>
               <InfoRow label={t("Message")}>
                 {campaign.followPromptMessage ||
-                  "quick favor before i send your link. i don't make any money from this, it's free. if you want to support me, just don't unfollow after, and star the repo on github if it helps you. tap the button once you're following and i'll send it over"}
+                  "Antes de te mandar o link, um pedido rápido: me segue aqui? Assim que seguir, toca no botão abaixo que eu te mando na hora."}
               </InfoRow>
               <InfoRow label={t("Button")}>
                 {campaign.followPromptButtonLabel || "Já estou seguindo"}
